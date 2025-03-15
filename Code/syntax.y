@@ -4,11 +4,15 @@
 
 %token INT
 %token ADD SUB MUL DIV
+%token LINEBREAK
 
 %%
 
-Calc:
-    | Exp { printf("= %d\n", $1); }
+LineCalc: /* empty */
+    | Calc LINEBREAK LineCalc
+    ;
+
+Calc: Exp { printf("= %d\n", $1); }
     ;
 
 Exp : Factor     
@@ -18,14 +22,11 @@ Exp : Factor
 Factor : Term 
     | Factor MUL Term  { $$ = $1 * $3; }
     | Factor DIV Term  { $$ = $1 / $3; }
+    ;
 
-Term : INT 
+Term : INT { printf("[INT](%d) ", $1); $$ = $1; }
     ;
 
 %%
 
 #include "lex.yy.c"
-
-int main() {
-    yyparse();
-}
