@@ -1,0 +1,6 @@
+parser
+report.pdf
+lex.yy.c
+*.o
+syntax.*
+!syntax.y
