@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int main() {
-    printf("start;\n");
+    printf("start;\n=====================\n\n");
     yyparse();
-    printf("end;\n");
+    printf("\n\n======================\nend;\n");
 }
