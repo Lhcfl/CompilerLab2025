@@ -86,6 +86,7 @@ ParamDec: Specifier VarDec
 
 /* Statements */
 CompSt: LC DefList StmtList RC
+    | error RC
     ;
 
 StmtList: /* empty */
@@ -98,6 +99,7 @@ Stmt: Exp SEMI
     | IF LP Exp RP Stmt
     | IF LP Exp RP Stmt ELSE Stmt
     | WHILE LP Exp RP Stmt
+    | error SEMI
     ;
 
 /** Local Definations */
@@ -135,7 +137,8 @@ Exp: Exp ASSIGNOP Exp
     | Exp DOT ID
     | ID                            
     | INT                          
-    | FLOAT           
+    | FLOAT
+    | error RP
     ;
 
 Args: Exp COMMA Args               

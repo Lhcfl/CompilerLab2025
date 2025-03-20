@@ -88,6 +88,7 @@ ParamDec: Specifier VarDec                     { $$ = cmm_node_tree("ParamDec", 
 
 /* Statements */
 CompSt: LC DefList StmtList RC                 { $$ = cmm_node_tree("CompSt", 4, $1, $2, $3, $4); }
+    | error RC                                 { $$ = cmm_node_tree("CompSt", 1, $1); }
     ;
 
 StmtList: /* empty */                          { $$ = cmm_empty_tree("StmtList"); }
@@ -100,6 +101,7 @@ Stmt: Exp SEMI                                 { $$ = cmm_node_tree("Stmt", 2, $
     | IF LP Exp RP Stmt                        { $$ = cmm_node_tree("Stmt", 5, $1, $2, $3, $4, $5); }
     | IF LP Exp RP Stmt ELSE Stmt              { $$ = cmm_node_tree("Stmt", 7, $1, $2, $3, $4, $5, $6, $7); }
     | WHILE LP Exp RP Stmt                     { $$ = cmm_node_tree("Stmt", 5, $1, $2, $3, $4, $5); }
+    | error SEMI                               { $$ = cmm_node_tree("Stmt", 1, $1); }
     ;
 
 /** Local Definations */
@@ -138,6 +140,7 @@ Exp: Exp ASSIGNOP Exp                          { $$ = cmm_node_tree("Exp", 3, $1
     | ID                                       { $$ = cmm_node_tree("Exp", 1, $1); }
     | INT                                      { $$ = cmm_node_tree("Exp", 1, $1); }
     | FLOAT                                    { $$ = cmm_node_tree("Exp", 1, $1); }
+    | error RP                                 { $$ = cmm_node_tree("Exp", 1, $1); }
     ;
 
 Args: Exp COMMA Args                           { $$ = cmm_node_tree("Args", 3, $1, $2, $3); }

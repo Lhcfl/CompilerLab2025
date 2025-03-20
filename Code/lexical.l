@@ -165,7 +165,7 @@ int yy_last_lineno = -1;
 [ \t]+                      ;
 [\r\n]+                     ;
 
-[0-9]*\.[0-9]*[eE]\+?[0-9]+ {
+[0-9]*\.[0-9]*[eE][\+\-]?[0-9]+ {
                                 char buffer[100];
                                 sprintf(buffer, "In `%s`: bad float", yytext);
                                 cmm_report_error('A', buffer);
@@ -187,8 +187,12 @@ int yy_last_lineno = -1;
                             }
 
 .                           { 
-                                char buffer[50];
-                                sprintf(buffer, "unexpected pattern `%s`", yytext);
+                                char buffer[100];
+                                if (yytext[0] < 0) {
+                                    sprintf(buffer, "unexpected pattern unknown");
+                                } else {
+                                    sprintf(buffer, "unexpected pattern `%s` (code %d)", yytext, yytext[0]);
+                                }
                                 cmm_report_error('A', buffer);
                                 return YYerror;
                             }
