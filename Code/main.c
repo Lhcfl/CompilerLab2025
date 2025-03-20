@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 int main() {
-    printf("done;\n");
+    printf("start;\n");
     yyparse();
+    printf("end;\n");
 }
