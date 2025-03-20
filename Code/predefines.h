@@ -52,6 +52,7 @@ typedef struct CMM_AST_NODE {
 extern YYSTYPE yylval;
 extern char*   yytext;
 
+void         cmm_report_error(char type, char* msg);
 void         cmm_log_node(CMM_AST_NODE* val);
 void         cmm_send_yylval_token(char* token_kind);
 void         cmm_send_yylval_int(int val);

@@ -165,10 +165,18 @@ int yy_last_lineno = -1;
 [ \t]+                      ;
 [\r\n]+                     ;
 
+0[0-7]*[8-9]+[0-9]*         {
+                                char buffer[100];
+                                sprintf(buffer, "In `%s`: 8 or 9 can't occur in oct numbers", yytext);
+                                cmm_report_error('A', buffer);
+                                return YYerror;
+                            }
+
 .                           { 
-                                printf("\nerror: unexpected yytext = %s", yytext); 
-                                printf("\ncode: %d", yytext[0]); 
-                                printf("\n"); 
+                                char buffer[50];
+                                sprintf(buffer, "unexpected pattern `%s`", yytext);
+                                cmm_report_error('A', buffer);
+                                return YYerror;
                             }
 
 

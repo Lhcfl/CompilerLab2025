@@ -12,9 +12,14 @@ extern char*   yytext;
 extern int     yyleng;
 extern int     yylineno;
 
-void yyerror(char* msg) {
-    cmm_lexical_error = cmm_clone_string(msg);
-    printf("Error type A at Line %d: %s", yylineno, msg);
+char error_buffer[200];
+
+void yyerror(char* msg) { cmm_report_error('B', msg); }
+
+void cmm_report_error(char type, char* msg) {
+    sprintf(error_buffer, "Error type %c at Line %d: %s", type, yylineno, msg);
+    if (type == 'A') { cmm_lexical_error = cmm_clone_string(error_buffer); }
+    if (type == 'B') { cmm_syntax_error = cmm_clone_string(error_buffer); }
 }
 
 char* cmm_clone_string(char* str) {
