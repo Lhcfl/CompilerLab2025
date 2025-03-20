@@ -6,6 +6,7 @@
 
 #define CMM_DEBUG_FLAG
 #define CMM_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define CMM_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 extern int yylex(void);
 extern int fileno(FILE*);
@@ -26,6 +27,8 @@ enum CMM_AST_NODE_KIND {
 typedef struct CMM_AST_LOCATION {
     int   line;
     int   column;
+    int   end_line;
+    int   end_column;
     char* text;
 } CMM_AST_LOCATION;
 

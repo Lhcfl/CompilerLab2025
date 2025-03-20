@@ -46,4 +46,5 @@ int main() {
     cmm_log_node(&cmm_parsed_root);
     printf("\n\n======================\n\n");
     cmm_print_node(&cmm_parsed_root, 0);
+    printf("done");
 }

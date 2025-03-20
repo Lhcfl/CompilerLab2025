@@ -29,31 +29,36 @@ void cmm_log_node(CMM_AST_NODE* val) {
 #ifndef CMM_DEBUG_FLAG
     return;
 #endif
+    printf("{ \"line\": %d, \"col\": %d, \"end_line\": %d, \"end_col\": %d, ",
+           val->location.line,
+           val->location.column,
+           val->location.end_line,
+           val->location.end_column);
     switch (val->kind) {
         case CMM_AST_NODE_TOKEN: {
-            printf("{ \"kind\": \"token\", \"val\": \"%s\", \"text\": \"%s\" }",
+            printf("\"kind\": \"token\", \"val\": \"%s\", \"text\": \"%s\" }",
                    val->data.val_token,
                    val->location.text);
             break;
         }
         case CMM_AST_NODE_INT: {
-            printf("{ \"kind\": \"int\", \"val\": %d }", val->data.val_int);
+            printf("\"kind\": \"int\", \"val\": %d }", val->data.val_int);
             break;
         }
         case CMM_AST_NODE_FLOAT: {
-            printf("{ \"kind\": \"float\", \"val\": %f }", val->data.val_float);
+            printf("\"kind\": \"float\", \"val\": %f }", val->data.val_float);
             break;
         }
         case CMM_AST_NODE_TYPE: {
-            printf("{ \"kind\": \"type\", \"val\": \"%s\" }", val->data.val_type);
+            printf("\"kind\": \"type\", \"val\": \"%s\" }", val->data.val_type);
             break;
         }
         case CMM_AST_NODE_IDENT: {
-            printf("{ \"kind\": \"ident\", \"val\": \"%s\" }", val->data.val_ident);
+            printf("\"kind\": \"ident\", \"val\": \"%s\" }", val->data.val_ident);
             break;
         }
         case CMM_AST_NODE_TREE: {
-            printf("{ \"kind\": \"tree\", \"val\": \"%s\", \"child\": [ ",
+            printf("\"kind\": \"tree\", \"val\": \"%s\", \"child\": [ ",
                    val->data.val_tree_name);
             for (int i = 0; i < val->len; i++) {
                 if (i != 0) printf(", ");
@@ -116,8 +121,10 @@ void cmm_send_yylval_ident(char* val) {
 }
 
 void cmm_send_yylval_loc(int line, int column) {
-    yylval.location.line   = line;
-    yylval.location.column = column;
+    yylval.location.line       = line;
+    yylval.location.column     = column;
+    yylval.location.end_line   = line;
+    yylval.location.end_column = column;
 }
 
 CMM_AST_NODE cmm_node_tree(char* name, int len, ...) {
@@ -125,25 +132,31 @@ CMM_AST_NODE cmm_node_tree(char* name, int len, ...) {
     va_start(args, len);
 
     CMM_AST_NODE ret;
-    ret.kind               = CMM_AST_NODE_TREE;
-    ret.data.val_tree_name = name;
-    ret.len                = len;
-    ret.nodes              = malloc(sizeof(CMM_AST_NODE) * len);
-    ret.location.line      = 0x7fffffff;
-    ret.location.column    = 0x7fffffff;
+    ret.kind                = CMM_AST_NODE_TREE;
+    ret.data.val_tree_name  = name;
+    ret.len                 = len;
+    ret.nodes               = malloc(sizeof(CMM_AST_NODE) * len);
+    ret.location.line       = 0x7fffffff;
+    ret.location.end_line   = -1;
+    ret.location.column     = 0x7fffffff;
+    ret.location.end_column = -1;
 
     for (int i = 0; i < len; i++) {
-        CMM_AST_NODE node   = va_arg(args, CMM_AST_NODE);
-        ret.nodes[i]        = node;
-        ret.location.line   = CMM_MIN(node.location.line, ret.location.line);
-        ret.location.column = CMM_MIN(node.location.column, ret.location.column);
+        CMM_AST_NODE     node   = va_arg(args, CMM_AST_NODE);
+        CMM_AST_LOCATION loc    = node.location;
+        ret.nodes[i]            = node;
+        ret.location.line       = CMM_MIN(loc.line, ret.location.line);
+        ret.location.column     = CMM_MIN(loc.column, ret.location.column);
+        ret.location.end_line   = CMM_MAX(loc.end_line, ret.location.end_line);
+        ret.location.end_column = CMM_MAX(loc.end_column, ret.location.end_column);
     }
-    for (int i = 0; i < len; i++) {
+    for (int i = 1; i < len; i++) {
         if (ret.nodes[i].location.line == 0x7fffffff) {
-            ret.nodes[i].location.line = ret.location.line;
+            ret.nodes[i].location.line     = ret.nodes[i - 1].location.end_line;
+            ret.nodes[i].location.end_line = ret.nodes[i - 1].location.end_line;
         }
         if (ret.nodes[i].location.column == 0x7fffffff) {
-            ret.nodes[i].location.column = ret.location.column;
+            ret.nodes[i].location.end_column = ret.nodes[i - 1].location.end_column;
         }
     }
 
@@ -152,11 +165,13 @@ CMM_AST_NODE cmm_node_tree(char* name, int len, ...) {
 
 CMM_AST_NODE cmm_empty_tree(char* name) {
     CMM_AST_NODE ret;
-    ret.kind               = CMM_AST_NODE_TREE;
-    ret.data.val_tree_name = name;
-    ret.len                = 0;
-    ret.nodes              = NULL;
-    ret.location.line      = 0x7fffffff;
-    ret.location.column    = 0x7fffffff;
+    ret.kind                = CMM_AST_NODE_TREE;
+    ret.data.val_tree_name  = name;
+    ret.len                 = 0;
+    ret.nodes               = NULL;
+    ret.location.line       = 0x7fffffff;
+    ret.location.end_line   = -1;
+    ret.location.column     = 0x7fffffff;
+    ret.location.end_column = -1;
     return ret;
 }

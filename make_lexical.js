@@ -46,7 +46,11 @@ function apply(name) {
   } else {
     send.push(`cmm_send_yylval_token("${name}");`);
   }
-  return [...send, `cmm_send_yylval_loc(yylineno, 1);`, `return ${name};`];
+  return [
+    ...send,
+    `cmm_send_yylval_loc(yylineno, yycolumn);`,
+    `return ${name};`,
+  ];
 }
 
 const handled = Object.entries(DEFINATIONS).map(([kind, rule]) => {
