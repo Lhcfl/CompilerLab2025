@@ -3,6 +3,7 @@
 
 # 编译器设定和编译选项
 CC = gcc
+NODE = node
 FLEX = flex
 BISON = bison
 CFLAGS = -std=c99
@@ -29,6 +30,7 @@ lexical: $(LFILE)
 	$(FLEX) -o $(LFC) $(LFILE)
 
 syntax-c: $(YFILE)
+	make gen-syntax
 	$(BISON) -o $(YFC) -d -v $(YFILE)
 
 -include $(patsubst %.o, %.d, $(OBJS))
@@ -42,3 +44,5 @@ clean:
 	rm -f $(OBJS) $(OBJS:.o=.d)
 	rm -f $(LFC) $(YFC) $(YFC:.c=.h)
 	rm -f *~
+gen-syntax:
+	$(NODE) make_syntax.js
