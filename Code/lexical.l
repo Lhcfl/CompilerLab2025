@@ -165,6 +165,13 @@ int yy_last_lineno = -1;
 [ \t]+                      ;
 [\r\n]+                     ;
 
+[0-9]*\.[0-9]*[eE]\+?[0-9]+ {
+                                char buffer[100];
+                                sprintf(buffer, "In `%s`: bad float", yytext);
+                                cmm_report_error('A', buffer);
+                                return YYerror;
+                            }
+
 0[0-7]*[8-9]+[0-9]*         {
                                 char buffer[100];
                                 sprintf(buffer, "In `%s`: 8 or 9 can't occur in oct numbers", yytext);

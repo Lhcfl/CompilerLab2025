@@ -6,7 +6,7 @@
 
 void cmm_print_node(CMM_AST_NODE* val, int indent) {
     if (val->kind == CMM_AST_NODE_TREE && val->len == 0) { return; }
-    for (int i = 0; i <= indent; i++) { printf(" "); }
+    for (int i = 0; i < indent; i++) { printf(" "); }
 
     switch (val->kind) {
         case CMM_AST_NODE_TOKEN: {
@@ -14,7 +14,7 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
             break;
         }
         case CMM_AST_NODE_INT: {
-            printf("INT: %d \n", val->data.val_int);
+            printf("INT: %d\n", val->data.val_int);
             break;
         }
         case CMM_AST_NODE_FLOAT: {
