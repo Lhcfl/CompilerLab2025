@@ -2,7 +2,7 @@
 # ************ 遇到不明白的地方请google以及阅读手册 *************
 
 # 编译器设定和编译选项
-CC = gcc
+CC = gcc -DCMM_DEBUG_FLAG
 NODE = node
 FLEX = flex
 BISON = bison

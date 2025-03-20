@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define CMM_DEBUG_FLAG
+// #define CMM_DEBUG_FLAG
 #define CMM_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CMM_MAX(a, b) ((a) > (b) ? (a) : (b))
 

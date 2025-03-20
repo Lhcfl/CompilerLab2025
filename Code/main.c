@@ -42,7 +42,7 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
 int main() {
 
 #ifdef CMM_DEBUG_FLAG
-    printf("\n=====================\n\n");
+    printf("\n======== BEGIN ==========\n\n");
 #endif
 
     yyparse();
