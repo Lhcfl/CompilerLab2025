@@ -9,9 +9,7 @@
 %{
 int yycolumn = 1;
 int yy_last_lineno = -1;
-#define YYUSER_ACTION \
-    yycolumn = yy_last_lineno != yylineno ? 1 : yycolumn + yyleng; \
-    yy_last_lineno = yylineno;
+#define YY_USER_ACTION yycolumn = yy_last_lineno != yylineno ? (yy_last_lineno = yylineno, 0) : yycolumn + yyleng;
 %}
 
 %%

@@ -24,6 +24,7 @@ char* cmm_clone_string(char* str) {
 
 extern YYSTYPE yylval;
 extern char*   yytext;
+extern int     yyleng;
 
 void cmm_log_node(CMM_AST_NODE* val) {
 #ifndef CMM_DEBUG_FLAG
@@ -124,7 +125,7 @@ void cmm_send_yylval_loc(int line, int column) {
     yylval.location.line       = line;
     yylval.location.column     = column;
     yylval.location.end_line   = line;
-    yylval.location.end_column = column;
+    yylval.location.end_column = column + yyleng;
 }
 
 CMM_AST_NODE cmm_node_tree(char* name, int len, ...) {
