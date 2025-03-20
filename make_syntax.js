@@ -1,112 +1,7 @@
-const input = `
-Program: ExtDefList
-    ;
+const fs = require("node:fs");
+const file = fs.readFileSync("Code/syntax.txt").toString();
 
-ExtDefList: /* empty */
-    | ExtDef ExtDefList
-    ;
-
-ExtDef: Specifier ExtDecList SEMI
-    | Specifier SEMI
-    | Specifier FunDec CompSt
-    ;
-
-ExtDecList: VarDec
-    | VarDec COMMA ExtDecList
-    ;
-
-/* Specifiers */ 
-
-Specifier: TYPE
-    | StructSpecifier
-    ;
-
-StructSpecifier: STRUCT OptTag LC DefList RC
-    | STRUCT Tag
-    ;
-
-OptTag: /* empty */ 
-    | ID
-    ;
-
-Tag: ID
-    ;
-
-/* Declarators */
-
-VarDec: ID
-    | VarDec LB INT RB
-    ;
-
-FunDec: ID LP VarList RP
-    | ID LP RP
-    ;
-
-VarList: ParamDec COMMA VarList
-    | ParamDec
-    ;
-
-ParamDec: Specifier VarDec
-    ;
-
-/* Statements */
-CompSt: LC DefList StmtList RC
-    ;
-
-StmtList: /* empty */
-    | Stmt StmtList
-    ;
-
-Stmt: Exp SEMI
-    | CompSt
-    | RETURN Exp SEMI
-    | IF LP Exp RP Stmt
-    | IF LP Exp RP Stmt ELSE Stmt
-    | WHILE LP Exp RP Stmt
-    ;
-
-/** Local Definations */
-DefList: /* empty */
-    | Def DefList
-    ;
-
-Def: Specifier DecList SEMI
-    ;
-
-DecList: Dec
-    | Dec COMMA DecList
-    ;
-
-Dec: VarDec
-    | VarDec ASSIGNOP Exp
-    ;
-
-/** expressions */
-
-Exp: Exp ASSIGNOP Exp
-    | Exp AND Exp
-    | Exp OR Exp
-    | Exp RELOP Exp
-    | Exp PLUS Exp
-    | Exp MINUS Exp
-    | Exp STAR Exp
-    | Exp DIV Exp
-    | LP Exp RP
-    | MINUS Exp
-    | NOT Exp
-    | ID LP Args RP
-    | ID LP RP
-    | Exp LB Exp RB
-    | Exp DOT ID
-    | ID                            
-    | INT                          
-    | FLOAT           
-    ;
-
-Args: Exp COMMA Args               
-    | Exp                     
-    ;
-`;
+const [def, body, code] = file.split("%%");
 
 let bkg = "";
 
@@ -116,11 +11,15 @@ function genList(count) {
     str += ", $";
     str += i;
   }
-  str += "); }";
+  str += "); ";
+  if (bkg === "Program") {
+    str += "cmm_parsed_root = $$; ";
+  }
+  str += "}";
   return str;
 }
 
-const lines = input.split("\n").map((line) => {
+const lines = body.split("\n").map((line) => {
   if (line.match(/^[\s]+\|/) || line.match(/^[A-Z][a-zA-z]+/)) {
     const idents = line.matchAll(/[A-Z][A-Za-z]+/g);
     const comma = line.includes(":");
@@ -154,4 +53,4 @@ const ret = lines
   })
   .join("\n");
 
-console.log(ret);
+fs.writeFileSync("Code/syntax.y", [def, body, code].join("\n%%\n"));

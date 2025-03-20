@@ -1,5 +1,6 @@
 %{
 #include "predefines.h"
+#include "globals.h"
 %}
 
 %token INT;
@@ -53,7 +54,7 @@
 %type Args
 
 %%
-Program: ExtDefList                            { $$ = cmm_node_tree("Program", 1, $1); cmm_log_node(&$$); }
+Program: ExtDefList                            { $$ = cmm_node_tree("Program", 1, $1); cmm_parsed_root = $$; }
     ;
 
 ExtDefList: /* empty */                        { $$ = cmm_empty_tree("ExtDefList"); }
@@ -163,4 +164,4 @@ Args: Exp COMMA Args                           { $$ = cmm_node_tree("Args", 3, $
 %%
 
 #include "lex.yy.c"
-#include "predefines.h"
+#include "predefines.cpp"
