@@ -2,7 +2,7 @@ const DEFINATIONS = [
   ["FLOAT", /[0-9]+\.[0-9]+/],
   ["INT", /0[0-7]*/],
   ["INT", /[1-9][0-9]*/],
-  ["INT", /0x[0-9A-Fa-f]+/],
+  ["INT", /0[xX][0-9A-Fa-f]+/],
   ["SEMI", [";"]],
   ["COMMA", [","]],
   ["ASSIGNOP", ["="]],

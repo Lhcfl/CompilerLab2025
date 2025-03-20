@@ -31,7 +31,7 @@ int yy_last_lineno = -1;
                                 return YYerror;
                             }
 
-0x[0-9A-Fa-f]*[g-zG-Z]+     {
+0[xX][0-9A-Fa-f]*[g-zG-Z]+  {
                                 char buffer[100];
                                 sprintf(buffer, "In `%s`: G-Z can't occur in hex numbers", yytext);
                                 cmm_report_error('A', buffer);
