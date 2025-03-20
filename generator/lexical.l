@@ -24,6 +24,13 @@ int yy_last_lineno = -1;
                                 return YYerror;
                             }
 
+0x[0-9A-Fa-f]*[g-zG-Z]+     {
+                                char buffer[100];
+                                sprintf(buffer, "In `%s`: G-Z can't occur in hex numbers", yytext);
+                                cmm_report_error('A', buffer);
+                                return YYerror;
+                            }
+
 .                           { 
                                 char buffer[50];
                                 sprintf(buffer, "unexpected pattern `%s`", yytext);
