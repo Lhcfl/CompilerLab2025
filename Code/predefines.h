@@ -1,6 +1,8 @@
 #ifndef LINCA_BYYL_PREDEFINES
 #define LINCA_BYYL_PREDEFINES
 
+#include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 #define CMM_DEBUG_FLAG
@@ -132,6 +134,27 @@ void cmm_send_yylval_ident(char* val) {
     yylval.text           = yytext;
 
     cmm_log_node(&yylval);
+}
+
+CMM_AST_NODE cmm_node_tree(int len, ...) {
+    va_list args;
+    va_start(args, len);
+
+    CMM_AST_NODE ret;
+    ret.kind  = CMM_AST_NODE_TREE;
+    ret.len   = len;
+    ret.nodes = malloc(sizeof(CMM_AST_NODE) * len);
+
+    for (int i = 0; i < len; i++) ret.nodes[i] = va_arg(args, CMM_AST_NODE);
+    return ret;
+}
+
+CMM_AST_NODE cmm_empty_tree() {
+    CMM_AST_NODE ret;
+    ret.kind  = CMM_AST_NODE_TREE;
+    ret.len   = 0;
+    ret.nodes = NULL;
+    return ret;
 }
 
 #endif

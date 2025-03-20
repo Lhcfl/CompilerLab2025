@@ -1,63 +1,4 @@
-%{
-#include "predefines.h"
-%}
-
-%union {
-    CMM_AST_NODE node;
-}
-
-%token <node> INT;
-%token <node> FLOAT;
-%token <node> ID;
-%token <node> SEMI
-%token <node> COMMA
-%token <node> ASSIGNOP
-%token <node> RELOP
-%token <node> PLUS
-%token <node> MINUS
-%token <node> STAR
-%token <node> DIV
-%token <node> AND
-%token <node> OR
-%token <node> DOT
-%token <node> NOT
-%token <node> TYPE
-%token <node> LP
-%token <node> RP
-%token <node> LB
-%token <node> RB
-%token <node> LC
-%token <node> RC
-%token <node> STRUCT
-%token <node> RETURN
-%token <node> IF
-%token <node> ELSE
-%token <node> WHILE
-
-%type <node> Program
-%type <node> ExtDefList
-%type <node> ExtDef
-%type <node> Specifier
-%type <node> ExtDecList
-%type <node> FunDec
-%type <node> CompSt
-%type <node> VarDec
-%type <node> StructSpecifier
-%type <node> OptTag
-%type <node> DefList
-%type <node> Tag
-%type <node> VarList
-%type <node> ParamDec
-%type <node> StmtList
-%type <node> Stmt
-%type <node> Exp
-%type <node> Def
-%type <node> DecList
-%type <node> Dec
-%type <node> Args
-
-%%
-/* High level Definations */
+const input = `
 Program: ExtDefList
     ;
 
@@ -165,6 +106,47 @@ Exp: Exp ASSIGNOP Exp
 Args: Exp COMMA Args               
     | Exp                     
     ;
-%%
+`;
 
-#include "lex.yy.c"
+function genList(count) {
+  let str = "{ $$ = cmm_node_tree(" + count;
+  for (let i = 1; i <= count; i++) {
+    str += ", $";
+    str += i;
+  }
+  str += "); }";
+  return str;
+}
+
+const lines = input.split("\n").map((line) => {
+  if (line.match(/^[\s]+\|/) || line.match(/^[A-Z][a-zA-z]+/)) {
+    const idents = line.matchAll(/[A-Z][A-Za-z]+/g);
+    const comma = line.includes(":");
+    const len = [...idents].length - comma;
+    if (len > 0) {
+      return [line, genList(len)];
+    } else {
+      return [line, "{ $$ = cmm_empty_tree(); }"];
+    }
+  } else {
+    return [line, null];
+  }
+});
+
+const line_space =
+  lines.map((x) => x[0]).reduce((a, b) => Math.max(a, b.length), 0) + 3;
+
+const ret = lines
+  .map(([pre, next]) => {
+    if (!next) {
+      return pre;
+    }
+    let str = pre;
+    while (str.length < line_space) {
+      str += " ";
+    }
+    return str + next;
+  })
+  .join("\n");
+
+console.log(ret);
