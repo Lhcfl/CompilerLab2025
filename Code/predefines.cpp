@@ -17,9 +17,9 @@ char error_buffer[200];
 void yyerror(char* msg) { cmm_report_error('B', msg); }
 
 void cmm_report_error(char type, char* msg) {
-    sprintf(error_buffer, "Error type %c at Line %d: %s", type, yylineno, msg);
-    if (type == 'A') { cmm_lexical_error = cmm_clone_string(error_buffer); }
-    if (type == 'B') { cmm_syntax_error = cmm_clone_string(error_buffer); }
+    printf("Error type %c at Line %d: %s\n", type, yylineno, msg);
+    if (type == 'A') { cmm_lexical_error += 1; }
+    if (type == 'B') { cmm_syntax_error += 1; }
 }
 
 char* cmm_clone_string(char* str) {

@@ -3,6 +3,6 @@
 
 #include "predefines.h"
 extern CMM_AST_NODE cmm_parsed_root;
-extern char*        cmm_lexical_error;
-extern char*        cmm_syntax_error;
+extern int          cmm_lexical_error;
+extern int          cmm_syntax_error;
 #endif

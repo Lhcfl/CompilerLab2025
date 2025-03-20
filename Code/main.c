@@ -52,14 +52,8 @@ int main(int argc, char** argv) {
 
     yyrestart(f);
     yyparse();
-    if (cmm_lexical_error) {
-        printf("%s", cmm_lexical_error);
-        return 0;
-    }
-    if (cmm_syntax_error) {
-        printf("%s", cmm_syntax_error);
-        return 0;
-    }
+    if (cmm_lexical_error) { return 0; }
+    if (cmm_syntax_error) { return 0; }
 
 #ifdef CMM_DEBUG_FLAG
     printf("\n\n======================\n\n");
