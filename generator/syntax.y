@@ -1,3 +1,8 @@
+%{
+#include "predefines.h"
+#include "globals.h"
+%}
+
 %token INT;
 %token FLOAT;
 %token ID;
@@ -138,3 +143,6 @@ Args: Exp COMMA Args
     ;
 
 %%
+
+#include "lex.yy.c"
+#include "predefines.cpp"

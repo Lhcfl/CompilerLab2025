@@ -31,29 +31,11 @@
 %token ELSE
 %token WHILE
 
-%type Program
-%type ExtDefList
-%type ExtDef
-%type Specifier
-%type ExtDecList
-%type FunDec
-%type CompSt
-%type VarDec
-%type StructSpecifier
-%type OptTag
-%type DefList
-%type Tag
-%type VarList
-%type ParamDec
-%type StmtList
-%type Stmt
-%type Exp
-%type Def
-%type DecList
-%type Dec
-%type Args
 
 %%
+
+
+/* High level Definations */
 Program: ExtDefList                            { $$ = cmm_node_tree("Program", 1, $1); cmm_parsed_root = $$; }
     ;
 
@@ -161,7 +143,10 @@ Exp: Exp ASSIGNOP Exp                          { $$ = cmm_node_tree("Exp", 3, $1
 Args: Exp COMMA Args                           { $$ = cmm_node_tree("Args", 3, $1, $2, $3); }
     | Exp                                      { $$ = cmm_node_tree("Args", 1, $1); }
     ;
+
+
 %%
+
 
 #include "lex.yy.c"
 #include "predefines.cpp"

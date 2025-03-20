@@ -1,5 +1,5 @@
 const fs = require("node:fs");
-const file = fs.readFileSync("Code/syntax.txt").toString();
+const file = fs.readFileSync("generator/syntax.y").toString();
 
 const [def, body, code] = file.split("%%");
 
@@ -53,4 +53,4 @@ const ret = lines
   })
   .join("\n");
 
-fs.writeFileSync("Code/syntax.y", [def, body, code].join("\n%%\n"));
+fs.writeFileSync("Code/syntax.y", [def, ret, code].join("\n%%\n"));
