@@ -108,8 +108,10 @@ Args: Exp COMMA Args
     ;
 `;
 
+let bkg = "";
+
 function genList(count) {
-  let str = "{ $$ = cmm_node_tree(" + count;
+  let str = `{ $$ = cmm_node_tree("${bkg}", ${count}`;
   for (let i = 1; i <= count; i++) {
     str += ", $";
     str += i;
@@ -122,11 +124,14 @@ const lines = input.split("\n").map((line) => {
   if (line.match(/^[\s]+\|/) || line.match(/^[A-Z][a-zA-z]+/)) {
     const idents = line.matchAll(/[A-Z][A-Za-z]+/g);
     const comma = line.includes(":");
+    if (comma) {
+      bkg = line.split(":")[0].trim();
+    }
     const len = [...idents].length - comma;
     if (len > 0) {
       return [line, genList(len)];
     } else {
-      return [line, "{ $$ = cmm_empty_tree(); }"];
+      return [line, `{ $$ = cmm_empty_tree("${bkg}"); }`];
     }
   } else {
     return [line, null];
