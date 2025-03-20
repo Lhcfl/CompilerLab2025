@@ -27,10 +27,11 @@ syntax: lexical syntax-c
 	$(CC) -c $(YFC) -o $(YFO)
 
 lexical: $(LFILE)
+	$(NODE) make_lexical.js
 	$(FLEX) -o $(LFC) $(LFILE)
 
 syntax-c: $(YFILE)
-	make gen-syntax
+	$(NODE) make_syntax.js
 	$(BISON) -o $(YFC) -d -v $(YFILE)
 
 -include $(patsubst %.o, %.d, $(OBJS))
@@ -44,5 +45,3 @@ clean:
 	rm -f $(OBJS) $(OBJS:.o=.d)
 	rm -f $(LFC) $(YFC) $(YFC:.c=.h)
 	rm -f *~
-gen-syntax:
-	$(NODE) make_syntax.js

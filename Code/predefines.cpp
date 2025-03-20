@@ -86,7 +86,7 @@ void cmm_send_yylval_int(int val) {
 }
 
 void cmm_send_yylval_float(float val) {
-    yylval.kind           = CMM_AST_NODE_INT;
+    yylval.kind           = CMM_AST_NODE_FLOAT;
     yylval.data.val_float = val;
     yylval.nodes          = NULL;
     yylval.len            = 0;

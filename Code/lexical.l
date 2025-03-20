@@ -6,8 +6,18 @@
 %option yylineno
 %option noyywrap
 
-%%
 
+%%
+[0-9]+\.[0-9]*              {
+                                cmm_send_yylval_float(atof(yytext));
+                                cmm_send_yylval_loc(yylineno, 1);
+                                return FLOAT;
+                            }
+[0-9]+                      {
+                                cmm_send_yylval_int(atoi(yytext));
+                                cmm_send_yylval_loc(yylineno, 1);
+                                return INT;
+                            }
 ";"                         {
                                 cmm_send_yylval_token("SEMI");
                                 cmm_send_yylval_loc(yylineno, 1);
@@ -68,7 +78,7 @@
                                 cmm_send_yylval_loc(yylineno, 1);
                                 return NOT;
                             }
-"int"|"float"               { 
+"int"|"float"               {
                                 cmm_send_yylval_type(yytext);
                                 cmm_send_yylval_loc(yylineno, 1);
                                 return TYPE;
@@ -128,24 +138,13 @@
                                 cmm_send_yylval_loc(yylineno, 1);
                                 return WHILE;
                             }
-
-[0-9]+\.[0-9]+              {
-                                cmm_send_yylval_float(atof(yytext));
-                                cmm_send_yylval_loc(yylineno, 1);
-                                return FLOAT;
-                            }
-
-[0-9]+                      {
-                                cmm_send_yylval_int(atoi(yytext));
-                                cmm_send_yylval_loc(yylineno, 1);
-                                return INT;
-                            }
-
 [a-zA-Z_][a-zA-Z0-9_]*      {
                                 cmm_send_yylval_ident(yytext);
                                 cmm_send_yylval_loc(yylineno, 1);
                                 return ID;
                             }
+
+
 
 [ \t]+                      ;
 [\r\n]+                     ;
@@ -155,5 +154,6 @@
                                 printf("\ncode: %d", yytext[0]); 
                                 printf("\n"); 
                             }
+
 
 %%
