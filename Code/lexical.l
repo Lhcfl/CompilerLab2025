@@ -19,7 +19,17 @@ int yy_last_lineno = -1;
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return FLOAT;
                             }
-[0-9]+                      {
+0[0-9]*                     {
+                                cmm_send_yylval_int(atoi(yytext));
+                                cmm_send_yylval_loc(yylineno, yycolumn);
+                                return INT;
+                            }
+[1-9][0-9]*                 {
+                                cmm_send_yylval_int(atoi(yytext));
+                                cmm_send_yylval_loc(yylineno, yycolumn);
+                                return INT;
+                            }
+0x[0-9A-Fa-f]+              {
                                 cmm_send_yylval_int(atoi(yytext));
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return INT;

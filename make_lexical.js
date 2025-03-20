@@ -1,32 +1,34 @@
-const DEFINATIONS = {
-  FLOAT: /[0-9]+\.[0-9]*/,
-  INT: /[0-9]+/,
-  SEMI: [";"],
-  COMMA: [","],
-  ASSIGNOP: ["="],
-  RELOP: [">", "<", ">=", "<=", "==", "!="],
-  PLUS: ["+"],
-  MINUS: ["-"],
-  STAR: ["*"],
-  DIV: ["/"],
-  AND: ["&&"],
-  OR: ["||"],
-  DOT: ["."],
-  NOT: ["!"],
-  TYPE: ["int", "float"],
-  LP: ["("],
-  RP: [")"],
-  LB: ["["],
-  RB: ["]"],
-  LC: ["{"],
-  RC: ["}"],
-  STRUCT: ["struct"],
-  RETURN: ["return"],
-  IF: ["if"],
-  ELSE: ["else"],
-  WHILE: ["while"],
-  ID: /[a-zA-Z_][a-zA-Z0-9_]*/,
-};
+const DEFINATIONS = [
+  ["FLOAT", /[0-9]+\.[0-9]*/],
+  ["INT", /0[0-9]*/],
+  ["INT", /[1-9][0-9]*/],
+  ["INT", /0x[0-9A-Fa-f]+/],
+  ["SEMI", [";"]],
+  ["COMMA", [","]],
+  ["ASSIGNOP", ["="]],
+  ["RELOP", [">", "<", ">=", "<=", "==", "!="]],
+  ["PLUS", ["+"]],
+  ["MINUS", ["-"]],
+  ["STAR", ["*"]],
+  ["DIV", ["/"]],
+  ["AND", ["&&"]],
+  ["OR", ["||"]],
+  ["DOT", ["."]],
+  ["NOT", ["!"]],
+  ["TYPE", ["int", "float"]],
+  ["LP", ["("]],
+  ["RP", [")"]],
+  ["LB", ["["]],
+  ["RB", ["]"]],
+  ["LC", ["{"]],
+  ["RC", ["}"]],
+  ["STRUCT", ["struct"]],
+  ["RETURN", ["return"]],
+  ["IF", ["if"]],
+  ["ELSE", ["else"]],
+  ["WHILE", ["while"]],
+  ["ID", /[a-zA-Z_][a-zA-Z0-9_]*/],
+];
 
 const fs = require("node:fs");
 const { isRegExp } = require("node:util/types");
@@ -53,7 +55,7 @@ function apply(name) {
   ];
 }
 
-const handled = Object.entries(DEFINATIONS).map(([kind, rule]) => {
+const handled = DEFINATIONS.map(([kind, rule]) => {
   if (isRegExp(rule)) {
     return [rule.source, apply(kind)];
   } else {
