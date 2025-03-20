@@ -1,13 +1,21 @@
 #include "predefines.h"
+#include "globals.h"
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
-extern int yylex(void);
-extern int fileno(FILE*);
+extern int     yylex(void);
+extern int     fileno(FILE*);
+extern YYSTYPE yylval;
+extern char*   yytext;
+extern int     yyleng;
+extern int     yylineno;
 
-void yyerror(char* msg) { fprintf(stderr, "error: %s\n", msg); }
+void yyerror(char* msg) {
+    cmm_lexical_error = cmm_clone_string(msg);
+    printf("Error type A at Line %d: %s", yylineno, msg);
+}
 
 char* cmm_clone_string(char* str) {
     size_t len   = strlen(str);
@@ -21,10 +29,6 @@ char* cmm_clone_string(char* str) {
 }
 
 #define YYSTYPE CMM_AST_NODE
-
-extern YYSTYPE yylval;
-extern char*   yytext;
-extern int     yyleng;
 
 void cmm_log_node(CMM_AST_NODE* val) {
 #ifndef CMM_DEBUG_FLAG
@@ -70,6 +74,8 @@ void cmm_log_node(CMM_AST_NODE* val) {
         }
     }
 }
+
+int cmm_parse_int(char* str) { return strtol(str, NULL, 0); }
 
 void cmm_send_yylval_token(char* token_kind) {
     yylval.kind           = CMM_AST_NODE_TOKEN;

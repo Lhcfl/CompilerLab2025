@@ -59,6 +59,7 @@ void         cmm_send_yylval_float(float val);
 void         cmm_send_yylval_type(char* val);
 void         cmm_send_yylval_ident(char* val);
 void         cmm_send_yylval_loc(int, int);
+int          cmm_parse_int(char*);
 CMM_AST_NODE cmm_node_tree(char* name, int len, ...);
 CMM_AST_NODE cmm_empty_tree(char* name);
 #endif

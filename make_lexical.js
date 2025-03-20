@@ -1,6 +1,6 @@
 const DEFINATIONS = [
-  ["FLOAT", /[0-9]+\.[0-9]*/],
-  ["INT", /0[0-9]*/],
+  ["FLOAT", /[0-9]+\.[0-9]+/],
+  ["INT", /0[0-7]*/],
   ["INT", /[1-9][0-9]*/],
   ["INT", /0x[0-9A-Fa-f]+/],
   ["SEMI", [";"]],
@@ -40,7 +40,7 @@ function apply(name) {
   if (name == "FLOAT") {
     send.push("cmm_send_yylval_float(atof(yytext));");
   } else if (name == "INT") {
-    send.push("cmm_send_yylval_int(atoi(yytext));");
+    send.push("cmm_send_yylval_int(cmm_parse_int(yytext));");
   } else if (name == "ID") {
     send.push("cmm_send_yylval_ident(yytext);");
   } else if (name == "TYPE") {

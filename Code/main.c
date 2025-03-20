@@ -40,11 +40,19 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
 }
 
 int main() {
+
+#ifdef CMM_DEBUG_FLAG
     printf("\n=====================\n\n");
+#endif
+
     yyparse();
+    if (cmm_lexical_error) { return 1; }
+
+#ifdef CMM_DEBUG_FLAG
     printf("\n\n======================\n\n");
     cmm_log_node(&cmm_parsed_root);
     printf("\n\n======================\n\n");
+#endif
+
     cmm_print_node(&cmm_parsed_root, 0);
-    printf("done");
 }
