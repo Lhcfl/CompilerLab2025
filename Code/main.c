@@ -39,20 +39,26 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
     }
 }
 
-int main() {
+extern void yyrestart(FILE*);
+
+int main(int argc, char** argv) {
+    if (argc <= 1) return 1;
+
+    FILE* f = fopen(argv[1], "r");
 
 #ifdef CMM_DEBUG_FLAG
     printf("\n======== BEGIN ==========\n\n");
 #endif
 
+    yyrestart(f);
     yyparse();
     if (cmm_lexical_error) {
         printf("%s", cmm_lexical_error);
-        return 1;
+        return 0;
     }
     if (cmm_syntax_error) {
         printf("%s", cmm_syntax_error);
-        return 1;
+        return 0;
     }
 
 #ifdef CMM_DEBUG_FLAG
