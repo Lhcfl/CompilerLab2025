@@ -108,6 +108,7 @@ DefList: /* empty */
     ;
 
 Def: Specifier DecList SEMI
+    | error SEMI
     ;
 
 DecList: Dec

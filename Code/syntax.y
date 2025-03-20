@@ -110,6 +110,7 @@ DefList: /* empty */                           { $$ = cmm_empty_tree("DefList");
     ;
 
 Def: Specifier DecList SEMI                    { $$ = cmm_node_tree("Def", 3, $1, $2, $3); }
+    | error SEMI                               { $$ = cmm_node_tree("Def", 1, $1); }
     ;
 
 DecList: Dec                                   { $$ = cmm_node_tree("DecList", 1, $1); }
