@@ -84,6 +84,7 @@ VarList: ParamDec COMMA VarList                { $$ = cmm_node_tree("VarList", 3
     ;
 
 ParamDec: Specifier VarDec                     { $$ = cmm_node_tree("ParamDec", 2, $1, $2); }
+    | error                                    { $$ = cmm_empty_tree("ParamDec"); }
     ;
 
 /* Statements */
@@ -103,6 +104,8 @@ Stmt: Exp SEMI                                 { $$ = cmm_node_tree("Stmt", 2, $
     | IF LP Exp RP Stmt ELSE Stmt              { $$ = cmm_node_tree("Stmt", 7, $1, $2, $3, $4, $5, $6, $7); }
     | IF LP error RP Stmt ELSE Stmt            { $$ = cmm_node_tree("Stmt", 6, $1, $2, $3, $4, $5, $6); }
     | WHILE LP Exp RP Stmt                     { $$ = cmm_node_tree("Stmt", 5, $1, $2, $3, $4, $5); }
+    | WHILE LP error Stmt                      { $$ = cmm_node_tree("Stmt", 3, $1, $2, $3); }
+    | error Stmt                               { $$ = cmm_node_tree("Stmt", 1, $1); }
     | error SEMI                               { $$ = cmm_node_tree("Stmt", 1, $1); }
     ;
 

@@ -82,6 +82,7 @@ VarList: ParamDec COMMA VarList
     ;
 
 ParamDec: Specifier VarDec
+    | error
     ;
 
 /* Statements */
@@ -101,6 +102,8 @@ Stmt: Exp SEMI
     | IF LP Exp RP Stmt ELSE Stmt
     | IF LP error RP Stmt ELSE Stmt
     | WHILE LP Exp RP Stmt
+    | WHILE LP error Stmt
+    | error Stmt
     | error SEMI
     ;
 
