@@ -21,21 +21,27 @@ int yy_last_lineno = -1;
                                 char buffer[100];
                                 sprintf(buffer, "In `%s`: bad float", yytext);
                                 cmm_report_error('A', buffer);
-                                return YYerror;
+                                cmm_send_yylval_float(0);
+                                cmm_send_yylval_loc(yylineno, yycolumn);
+                                return FLOAT;
                             }
 
 0[0-7]*[8-9]+[0-9]*         {
                                 char buffer[100];
                                 sprintf(buffer, "In `%s`: 8 or 9 can't occur in oct numbers", yytext);
                                 cmm_report_error('A', buffer);
-                                return YYerror;
+                                cmm_send_yylval_int(0);
+                                cmm_send_yylval_loc(yylineno, yycolumn);
+                                return INT;
                             }
 
-0[xX][0-9A-Fa-f]*[g-zG-Z]+  {
+0[xX][0-9A-Fa-f]*[g-zG-Z]+[0-9A-Fa-f]*  {
                                 char buffer[100];
                                 sprintf(buffer, "In `%s`: G-Z can't occur in hex numbers", yytext);
                                 cmm_report_error('A', buffer);
-                                return YYerror;
+                                cmm_send_yylval_int(0);
+                                cmm_send_yylval_loc(yylineno, yycolumn);
+                                return INT;
                             }
 
 .                           { 
@@ -46,7 +52,7 @@ int yy_last_lineno = -1;
                                     sprintf(buffer, "unexpected pattern `%s` (code %d)", yytext, yytext[0]);
                                 }
                                 cmm_report_error('A', buffer);
-                                return YYerror;
+                                cmm_cancel_next_yyerror(yylineno);
                             }
 
 %%

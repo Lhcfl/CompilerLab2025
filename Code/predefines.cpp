@@ -16,10 +16,14 @@ char error_buffer[200];
 
 void yyerror(char* msg) { cmm_report_error('B', msg); }
 
+void cmm_cancel_next_yyerror(int lineno) { cmm_cancel_next_error = lineno; }
+
 void cmm_report_error(char type, char* msg) {
-    printf("Error type %c at Line %d: %s\n", type, yylineno, msg);
     if (type == 'A') { cmm_lexical_error += 1; }
     if (type == 'B') { cmm_syntax_error += 1; }
+    if (cmm_cancel_next_error == yylineno && type == 'B') { return; }
+
+    printf("Error type %c at Line %d: %s\n", type, yylineno, msg);
 }
 
 char* cmm_clone_string(char* str) {

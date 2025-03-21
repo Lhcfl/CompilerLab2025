@@ -37,7 +37,7 @@
 %left RELOP // level 5
 %left PLUS MINUS // level 4
 %left STAR DIV // level 3
-%right NOT // level 3
+%right NOT // level 2
 
 
 %%
