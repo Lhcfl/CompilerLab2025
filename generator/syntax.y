@@ -31,6 +31,14 @@
 %token ELSE
 %token WHILE
 
+%right ASSIGNOP   // level 8
+%left OR // level 7
+%left AND // level 6
+%left RELOP // level 5
+%left PLUS MINUS // level 4
+%left STAR DIV // level 3
+%right NOT // level 2
+
 %%
 
 /* High level Definations */
@@ -127,16 +135,16 @@ Dec: VarDec
 /** expressions */
 
 Exp: Exp ASSIGNOP Exp
-    | Exp AND Exp
     | Exp OR Exp
+    | Exp AND Exp
     | Exp RELOP Exp
     | Exp PLUS Exp
     | Exp MINUS Exp
     | Exp STAR Exp
     | Exp DIV Exp
-    | LP Exp RP
     | MINUS Exp
     | NOT Exp
+    | LP Exp RP
     | ID LP Args RP
     | ID LP RP
     | Exp LB Exp RB

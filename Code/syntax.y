@@ -31,6 +31,14 @@
 %token ELSE
 %token WHILE
 
+%right ASSIGNOP   // level 8
+%left OR // level 7
+%left AND // level 6
+%left RELOP // level 5
+%left PLUS MINUS // level 4
+%left STAR DIV // level 3
+%right NOT // level 3
+
 
 %%
 
@@ -129,16 +137,16 @@ Dec: VarDec                                    { $$ = cmm_node_tree("Dec", 1, $1
 /** expressions */
 
 Exp: Exp ASSIGNOP Exp                          { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
-    | Exp AND Exp                              { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp OR Exp                               { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
+    | Exp AND Exp                              { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp RELOP Exp                            { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp PLUS Exp                             { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp MINUS Exp                            { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp STAR Exp                             { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp DIV Exp                              { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
-    | LP Exp RP                                { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | MINUS Exp                                { $$ = cmm_node_tree("Exp", 2, $1, $2); }
     | NOT Exp                                  { $$ = cmm_node_tree("Exp", 2, $1, $2); }
+    | LP Exp RP                                { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | ID LP Args RP                            { $$ = cmm_node_tree("Exp", 4, $1, $2, $3, $4); }
     | ID LP RP                                 { $$ = cmm_node_tree("Exp", 3, $1, $2, $3); }
     | Exp LB Exp RB                            { $$ = cmm_node_tree("Exp", 4, $1, $2, $3, $4); }

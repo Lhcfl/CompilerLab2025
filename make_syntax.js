@@ -6,7 +6,8 @@ const [def, body, code] = file.split("%%");
 let bkg = "";
 
 function genList(count) {
-  let str = `{ $$ = cmm_node_tree("${bkg}", ${count}`;
+  bkgname = bkg.match(/[A-Z][a-zA-z]+/)[0];
+  let str = `{ $$ = cmm_node_tree("${bkgname}", ${count}`;
   for (let i = 1; i <= count; i++) {
     str += ", $";
     str += i;
@@ -20,8 +21,8 @@ function genList(count) {
 }
 
 const lines = body.split("\n").map((line) => {
-  if (line.match(/^[\s]+\|/) || line.match(/^[A-Z][a-zA-z]+/)) {
-    const idents = line.matchAll(/[A-Z][A-Za-z]+/g);
+  if (line.match(/^[\s]+\|/) || line.match(/^[A-Z][a-zA-z0-9]+/)) {
+    const idents = line.matchAll(/[A-Z][A-Za-z0-9]+/g);
     const comma = line.includes(":");
     if (comma) {
       bkg = line.split(":")[0].trim();
