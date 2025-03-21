@@ -4,3 +4,4 @@ lex.yy.c
 *.o
 syntax.*
 !syntax.y
+*.zip
