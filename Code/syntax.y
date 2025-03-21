@@ -99,7 +99,9 @@ Stmt: Exp SEMI                                 { $$ = cmm_node_tree("Stmt", 2, $
     | CompSt                                   { $$ = cmm_node_tree("Stmt", 1, $1); }
     | RETURN Exp SEMI                          { $$ = cmm_node_tree("Stmt", 3, $1, $2, $3); }
     | IF LP Exp RP Stmt                        { $$ = cmm_node_tree("Stmt", 5, $1, $2, $3, $4, $5); }
+    | IF LP error RP Stmt                      { $$ = cmm_node_tree("Stmt", 4, $1, $2, $3, $4); }
     | IF LP Exp RP Stmt ELSE Stmt              { $$ = cmm_node_tree("Stmt", 7, $1, $2, $3, $4, $5, $6, $7); }
+    | IF LP error RP Stmt ELSE Stmt            { $$ = cmm_node_tree("Stmt", 6, $1, $2, $3, $4, $5, $6); }
     | WHILE LP Exp RP Stmt                     { $$ = cmm_node_tree("Stmt", 5, $1, $2, $3, $4, $5); }
     | error SEMI                               { $$ = cmm_node_tree("Stmt", 1, $1); }
     ;
@@ -142,6 +144,7 @@ Exp: Exp ASSIGNOP Exp                          { $$ = cmm_node_tree("Exp", 3, $1
     | INT                                      { $$ = cmm_node_tree("Exp", 1, $1); }
     | FLOAT                                    { $$ = cmm_node_tree("Exp", 1, $1); }
     | error RP                                 { $$ = cmm_node_tree("Exp", 1, $1); }
+    | error                                    { $$ = cmm_empty_tree("Exp"); }
     ;
 
 Args: Exp COMMA Args                           { $$ = cmm_node_tree("Args", 3, $1, $2, $3); }

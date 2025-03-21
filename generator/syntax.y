@@ -97,7 +97,9 @@ Stmt: Exp SEMI
     | CompSt
     | RETURN Exp SEMI
     | IF LP Exp RP Stmt
+    | IF LP error RP Stmt
     | IF LP Exp RP Stmt ELSE Stmt
+    | IF LP error RP Stmt ELSE Stmt
     | WHILE LP Exp RP Stmt
     | error SEMI
     ;
@@ -140,6 +142,7 @@ Exp: Exp ASSIGNOP Exp
     | INT                          
     | FLOAT
     | error RP
+    | error
     ;
 
 Args: Exp COMMA Args               
