@@ -13,7 +13,7 @@ extern int fileno(FILE*);
 
 void yyerror(char* msg);
 
-char* cmm_clone_string(char* str);
+char* cmm_clone_string(const char* str);
 
 enum CMM_AST_NODE_KIND {
     CMM_AST_NODE_TOKEN,

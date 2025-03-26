@@ -26,7 +26,7 @@ void cmm_report_error(char type, char* msg) {
     printf("Error type %c at Line %d: %s\n", type, yylineno, msg);
 }
 
-char* cmm_clone_string(char* str) {
+char* cmm_clone_string(const char* str) {
     size_t len   = strlen(str);
     char*  clone = (char*)malloc((len + 1) * sizeof(char));
     if (clone == NULL) {

@@ -1,6 +1,6 @@
+#include "avl.h"
 #include "predefines.h"
 #include "globals.h"
-#include "globals.cpp"
 #include "syntax.tab.h"
 #include <stdio.h>
 
@@ -42,6 +42,7 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
 extern void yyrestart(FILE*);
 
 int main(int argc, char** argv) {
+    avl_test_case();
     if (argc <= 1) return 1;
 
     FILE* f = fopen(argv[1], "r");
