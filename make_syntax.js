@@ -2,12 +2,16 @@ const fs = require("node:fs");
 const file = fs.readFileSync("generator/syntax.y").toString();
 
 const [def, body, code] = file.split("%%");
+/** @type {Set<string>} */
+const nodenames = new Set();
+
+[...def.matchAll(/%token ([A-Z]+)/g)].map((x) => nodenames.add(x[1]));
 
 let bkg = "";
 
 function genList(count) {
   bkgname = bkg.match(/[A-Z][a-zA-z]+/)[0];
-  let str = `{ $$ = cmm_node_tree("${bkgname}", ${count}`;
+  let str = `{ $$ = cmm_node_tree(CMM_TK_${bkgname}, ${count}`;
   for (let i = 1; i <= count; i++) {
     str += ", $";
     str += i;
@@ -27,11 +31,13 @@ const lines = body.split("\n").map((line) => {
     if (comma) {
       bkg = line.split(":")[0].trim();
     }
-    const len = [...idents].length - comma;
+    const idents_arr = [...idents];
+    const len = idents_arr.length - comma;
+    idents_arr.forEach((x) => nodenames.add(x[0]));
     if (len > 0) {
       return [line, genList(len)];
     } else {
-      return [line, `{ $$ = cmm_empty_tree("${bkg}"); }`];
+      return [line, `{ $$ = cmm_empty_tree(CMM_TK_${bkg}); }`];
     }
   } else {
     return [line, null];
@@ -55,3 +61,34 @@ const ret = lines
   .join("\n");
 
 fs.writeFileSync("Code/syntax.y", [def, ret, code].join("\n%%\n"));
+
+const node_names = [...nodenames];
+
+fs.writeFileSync(
+  "Code/syndef.h",
+  `
+#ifndef LINCA_BYYL_SYNTAX_PREDEFINES
+#define LINCA_BYYL_SYNTAX_PREDEFINES
+
+enum CMM_SYNTAX_TOKEN {
+${node_names.map((x) => `    CMM_TK_${x},`).join("\n")}
+};
+
+char* cmm_token_tostring(enum CMM_SYNTAX_TOKEN token);
+
+#endif
+`
+);
+
+fs.writeFileSync(
+  "Code/syndef.c",
+  `
+#include "syndef.h"
+
+char* cmm_token_tostring(enum CMM_SYNTAX_TOKEN token) {
+    switch (token) {
+${node_names.map((x) => `        case CMM_TK_${x}: return "${x}";`).join("\n")}
+    }
+}
+`
+);

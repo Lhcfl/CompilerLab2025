@@ -1,0 +1,58 @@
+
+#ifndef LINCA_BYYL_SYNTAX_PREDEFINES
+#define LINCA_BYYL_SYNTAX_PREDEFINES
+
+enum CMM_SYNTAX_TOKEN {
+    CMM_TK_INT,
+    CMM_TK_FLOAT,
+    CMM_TK_ID,
+    CMM_TK_SEMI,
+    CMM_TK_COMMA,
+    CMM_TK_ASSIGNOP,
+    CMM_TK_RELOP,
+    CMM_TK_PLUS,
+    CMM_TK_MINUS,
+    CMM_TK_STAR,
+    CMM_TK_DIV,
+    CMM_TK_AND,
+    CMM_TK_OR,
+    CMM_TK_DOT,
+    CMM_TK_NOT,
+    CMM_TK_TYPE,
+    CMM_TK_LP,
+    CMM_TK_RP,
+    CMM_TK_LB,
+    CMM_TK_RB,
+    CMM_TK_LC,
+    CMM_TK_RC,
+    CMM_TK_STRUCT,
+    CMM_TK_RETURN,
+    CMM_TK_IF,
+    CMM_TK_ELSE,
+    CMM_TK_WHILE,
+    CMM_TK_Program,
+    CMM_TK_ExtDefList,
+    CMM_TK_ExtDef,
+    CMM_TK_Specifier,
+    CMM_TK_ExtDecList,
+    CMM_TK_FunDec,
+    CMM_TK_CompSt,
+    CMM_TK_VarDec,
+    CMM_TK_StructSpecifier,
+    CMM_TK_OptTag,
+    CMM_TK_DefList,
+    CMM_TK_Tag,
+    CMM_TK_VarList,
+    CMM_TK_ParamDec,
+    CMM_TK_StmtList,
+    CMM_TK_Stmt,
+    CMM_TK_Exp,
+    CMM_TK_Def,
+    CMM_TK_DecList,
+    CMM_TK_Dec,
+    CMM_TK_Args,
+};
+
+char* cmm_token_tostring(enum CMM_SYNTAX_TOKEN token);
+
+#endif

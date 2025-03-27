@@ -1,6 +1,6 @@
-#include "avl.h"
 #include "predefines.h"
 #include "globals.h"
+#include "syndef.h"
 #include "syntax.tab.h"
 #include <stdio.h>
 
@@ -10,7 +10,7 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
 
     switch (val->kind) {
         case CMM_AST_NODE_TOKEN: {
-            printf("%s\n", val->data.val_token);
+            printf("%s\n", cmm_token_tostring(val->token));
             break;
         }
         case CMM_AST_NODE_INT: {
@@ -30,7 +30,7 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
             break;
         }
         case CMM_AST_NODE_TREE: {
-            printf("%s (%d)\n", val->data.val_tree_name, val->location.line);
+            printf("%s (%d)\n", cmm_token_tostring(val->token), val->location.line);
             for (int i = 0; i < val->len; i++) {
                 cmm_print_node(val->nodes + i, indent + 2);
             }
@@ -42,7 +42,6 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
 extern void yyrestart(FILE*);
 
 int main(int argc, char** argv) {
-    avl_test_case();
     if (argc <= 1) return 1;
 
     FILE* f = fopen(argv[1], "r");
@@ -63,4 +62,6 @@ int main(int argc, char** argv) {
 #endif
 
     cmm_print_node(&cmm_parsed_root, 0);
+#ifdef BYYL_IS_LAB1
+#endif
 }

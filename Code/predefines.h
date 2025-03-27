@@ -3,6 +3,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include "syndef.h"
 
 // #define CMM_DEBUG_FLAG
 #define CMM_MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -34,13 +35,12 @@ typedef struct CMM_AST_LOCATION {
 
 typedef struct CMM_AST_NODE {
     enum CMM_AST_NODE_KIND kind;
+    enum CMM_SYNTAX_TOKEN  token;
     union CMM_AST_NODE_VAL {
-        char* val_token;
         int   val_int;
         float val_float;
         char* val_type;
         char* val_ident;
-        char* val_tree_name;
     } data;
     struct CMM_AST_NODE*    nodes;
     int                     len;
@@ -55,13 +55,13 @@ extern char*   yytext;
 void         cmm_cancel_next_yyerror(int);
 void         cmm_report_error(char type, char* msg);
 void         cmm_log_node(CMM_AST_NODE* val);
-void         cmm_send_yylval_token(char* token_kind);
+void         cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token);
 void         cmm_send_yylval_int(int val);
 void         cmm_send_yylval_float(float val);
 void         cmm_send_yylval_type(char* val);
 void         cmm_send_yylval_ident(char* val);
 void         cmm_send_yylval_loc(int, int);
 int          cmm_parse_int(char*);
-CMM_AST_NODE cmm_node_tree(char* name, int len, ...);
-CMM_AST_NODE cmm_empty_tree(char* name);
+CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...);
+CMM_AST_NODE cmm_empty_tree(enum CMM_SYNTAX_TOKEN name);
 #endif

@@ -46,7 +46,7 @@ function apply(name) {
   } else if (name == "TYPE") {
     send.push("cmm_send_yylval_type(yytext);");
   } else {
-    send.push(`cmm_send_yylval_token("${name}");`);
+    send.push(`cmm_send_yylval_token(CMM_TK_${name});`);
   }
   return [
     ...send,

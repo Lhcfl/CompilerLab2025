@@ -112,6 +112,13 @@ void avl_free_tree(AVLTree* node) {
     free(node);
 }
 
+void avl_iterate_node(AVLTree* node, void fp(AVLTree* node)) {
+    if (!node) return;
+    avl_iterate_node(node->left, fp);
+    avl_iterate_node(node->right, fp);
+    fp(node);
+}
+
 // 测试示例
 int avl_test_case() {
     AVLTree* root = NULL;

@@ -1,5 +1,6 @@
 #include "predefines.h"
 #include "globals.h"
+#include "syndef.h"
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -51,7 +52,7 @@ void cmm_log_node(CMM_AST_NODE* val) {
     switch (val->kind) {
         case CMM_AST_NODE_TOKEN: {
             printf("\"kind\": \"token\", \"val\": \"%s\", \"text\": \"%s\" }",
-                   val->data.val_token,
+                   cmm_token_tostring(val->token),
                    val->location.text);
             break;
         }
@@ -73,7 +74,7 @@ void cmm_log_node(CMM_AST_NODE* val) {
         }
         case CMM_AST_NODE_TREE: {
             printf("\"kind\": \"tree\", \"val\": \"%s\", \"child\": [ ",
-                   val->data.val_tree_name);
+                   cmm_token_tostring(val->token));
             for (int i = 0; i < val->len; i++) {
                 if (i != 0) printf(", ");
                 cmm_log_node(val->nodes + i);
@@ -86,18 +87,18 @@ void cmm_log_node(CMM_AST_NODE* val) {
 
 int cmm_parse_int(char* str) { return strtol(str, NULL, 0); }
 
-void cmm_send_yylval_token(char* token_kind) {
-    yylval.kind           = CMM_AST_NODE_TOKEN;
-    yylval.data.val_token = token_kind;
-    yylval.nodes          = NULL;
-    yylval.len            = 0;
-    yylval.location.text  = cmm_clone_string(yytext);
-
+void cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token) {
+    yylval.kind          = CMM_AST_NODE_TOKEN;
+    yylval.token         = token;
+    yylval.nodes         = NULL;
+    yylval.len           = 0;
+    yylval.location.text = cmm_clone_string(yytext);
     cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_int(int val) {
     yylval.kind          = CMM_AST_NODE_INT;
+    yylval.token         = CMM_TK_INT;
     yylval.data.val_int  = val;
     yylval.nodes         = NULL;
     yylval.len           = 0;
@@ -108,6 +109,7 @@ void cmm_send_yylval_int(int val) {
 
 void cmm_send_yylval_float(float val) {
     yylval.kind           = CMM_AST_NODE_FLOAT;
+    yylval.token          = CMM_TK_FLOAT;
     yylval.data.val_float = val;
     yylval.nodes          = NULL;
     yylval.len            = 0;
@@ -118,6 +120,7 @@ void cmm_send_yylval_float(float val) {
 
 void cmm_send_yylval_type(char* val) {
     yylval.kind          = CMM_AST_NODE_TYPE;
+    yylval.token         = CMM_TK_TYPE;
     yylval.data.val_type = cmm_clone_string(val);
     yylval.nodes         = NULL;
     yylval.len           = 0;
@@ -128,6 +131,7 @@ void cmm_send_yylval_type(char* val) {
 
 void cmm_send_yylval_ident(char* val) {
     yylval.kind           = CMM_AST_NODE_IDENT;
+    yylval.token          = CMM_TK_ID;
     yylval.data.val_ident = cmm_clone_string(val);
     yylval.nodes          = NULL;
     yylval.len            = 0;
@@ -143,13 +147,13 @@ void cmm_send_yylval_loc(int line, int column) {
     yylval.location.end_column = column + yyleng;
 }
 
-CMM_AST_NODE cmm_node_tree(char* name, int len, ...) {
+CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...) {
     va_list args;
     va_start(args, len);
 
     CMM_AST_NODE ret;
     ret.kind                = CMM_AST_NODE_TREE;
-    ret.data.val_tree_name  = name;
+    ret.token               = name;
     ret.len                 = len;
     ret.nodes               = malloc(sizeof(CMM_AST_NODE) * len);
     ret.location.line       = 0x7fffffff;
@@ -179,10 +183,10 @@ CMM_AST_NODE cmm_node_tree(char* name, int len, ...) {
     return ret;
 }
 
-CMM_AST_NODE cmm_empty_tree(char* name) {
+CMM_AST_NODE cmm_empty_tree(enum CMM_SYNTAX_TOKEN name) {
     CMM_AST_NODE ret;
     ret.kind                = CMM_AST_NODE_TREE;
-    ret.data.val_tree_name  = name;
+    ret.token               = name;
     ret.len                 = 0;
     ret.nodes               = NULL;
     ret.location.line       = 0x7fffffff;

@@ -35,62 +35,62 @@ int yy_last_lineno = -1;
                                 return INT;
                             }
 ";"                         {
-                                cmm_send_yylval_token("SEMI");
+                                cmm_send_yylval_token(CMM_TK_SEMI);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return SEMI;
                             }
 ","                         {
-                                cmm_send_yylval_token("COMMA");
+                                cmm_send_yylval_token(CMM_TK_COMMA);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return COMMA;
                             }
 "="                         {
-                                cmm_send_yylval_token("ASSIGNOP");
+                                cmm_send_yylval_token(CMM_TK_ASSIGNOP);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return ASSIGNOP;
                             }
 ">"|"<"|">="|"<="|"=="|"!=" {
-                                cmm_send_yylval_token("RELOP");
+                                cmm_send_yylval_token(CMM_TK_RELOP);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return RELOP;
                             }
 "+"                         {
-                                cmm_send_yylval_token("PLUS");
+                                cmm_send_yylval_token(CMM_TK_PLUS);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return PLUS;
                             }
 "-"                         {
-                                cmm_send_yylval_token("MINUS");
+                                cmm_send_yylval_token(CMM_TK_MINUS);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return MINUS;
                             }
 "*"                         {
-                                cmm_send_yylval_token("STAR");
+                                cmm_send_yylval_token(CMM_TK_STAR);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return STAR;
                             }
 "/"                         {
-                                cmm_send_yylval_token("DIV");
+                                cmm_send_yylval_token(CMM_TK_DIV);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return DIV;
                             }
 "&&"                        {
-                                cmm_send_yylval_token("AND");
+                                cmm_send_yylval_token(CMM_TK_AND);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return AND;
                             }
 "||"                        {
-                                cmm_send_yylval_token("OR");
+                                cmm_send_yylval_token(CMM_TK_OR);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return OR;
                             }
 "."                         {
-                                cmm_send_yylval_token("DOT");
+                                cmm_send_yylval_token(CMM_TK_DOT);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return DOT;
                             }
 "!"                         {
-                                cmm_send_yylval_token("NOT");
+                                cmm_send_yylval_token(CMM_TK_NOT);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return NOT;
                             }
@@ -100,57 +100,57 @@ int yy_last_lineno = -1;
                                 return TYPE;
                             }
 "("                         {
-                                cmm_send_yylval_token("LP");
+                                cmm_send_yylval_token(CMM_TK_LP);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return LP;
                             }
 ")"                         {
-                                cmm_send_yylval_token("RP");
+                                cmm_send_yylval_token(CMM_TK_RP);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return RP;
                             }
 "["                         {
-                                cmm_send_yylval_token("LB");
+                                cmm_send_yylval_token(CMM_TK_LB);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return LB;
                             }
 "]"                         {
-                                cmm_send_yylval_token("RB");
+                                cmm_send_yylval_token(CMM_TK_RB);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return RB;
                             }
 "{"                         {
-                                cmm_send_yylval_token("LC");
+                                cmm_send_yylval_token(CMM_TK_LC);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return LC;
                             }
 "}"                         {
-                                cmm_send_yylval_token("RC");
+                                cmm_send_yylval_token(CMM_TK_RC);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return RC;
                             }
 "struct"                    {
-                                cmm_send_yylval_token("STRUCT");
+                                cmm_send_yylval_token(CMM_TK_STRUCT);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return STRUCT;
                             }
 "return"                    {
-                                cmm_send_yylval_token("RETURN");
+                                cmm_send_yylval_token(CMM_TK_RETURN);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return RETURN;
                             }
 "if"                        {
-                                cmm_send_yylval_token("IF");
+                                cmm_send_yylval_token(CMM_TK_IF);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return IF;
                             }
 "else"                      {
-                                cmm_send_yylval_token("ELSE");
+                                cmm_send_yylval_token(CMM_TK_ELSE);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return ELSE;
                             }
 "while"                     {
-                                cmm_send_yylval_token("WHILE");
+                                cmm_send_yylval_token(CMM_TK_WHILE);
                                 cmm_send_yylval_loc(yylineno, yycolumn);
                                 return WHILE;
                             }
