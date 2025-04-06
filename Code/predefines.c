@@ -87,54 +87,62 @@ void cmm_log_node(CMM_AST_NODE* val) {
 
 int cmm_parse_int(char* str) { return strtol(str, NULL, 0); }
 
+CMM_AST_NODE make_default_ast() {
+    CMM_AST_NODE ret;
+    ret.len                 = 0;
+    ret.nodes               = NULL;
+    ret.location.line       = 0x7fffffff;
+    ret.location.end_line   = -1;
+    ret.location.column     = 0x7fffffff;
+    ret.location.end_column = -1;
+    ret.context.kind        = CMM_AST_KIND_UNDEFINED;
+    return ret;
+}
+
 void cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token) {
+    yylval               = make_default_ast();
     yylval.kind          = CMM_AST_NODE_TOKEN;
     yylval.token         = token;
-    yylval.nodes         = NULL;
-    yylval.len           = 0;
     yylval.location.text = cmm_clone_string(yytext);
+
     cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_int(int val) {
+    yylval               = make_default_ast();
     yylval.kind          = CMM_AST_NODE_INT;
     yylval.token         = CMM_TK_INT;
     yylval.data.val_int  = val;
-    yylval.nodes         = NULL;
-    yylval.len           = 0;
     yylval.location.text = cmm_clone_string(yytext);
 
     cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_float(float val) {
+    yylval                = make_default_ast();
     yylval.kind           = CMM_AST_NODE_FLOAT;
     yylval.token          = CMM_TK_FLOAT;
     yylval.data.val_float = val;
-    yylval.nodes          = NULL;
-    yylval.len            = 0;
     yylval.location.text  = cmm_clone_string(yytext);
 
     cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_type(char* val) {
+    yylval               = make_default_ast();
     yylval.kind          = CMM_AST_NODE_TYPE;
     yylval.token         = CMM_TK_TYPE;
     yylval.data.val_type = cmm_clone_string(val);
-    yylval.nodes         = NULL;
-    yylval.len           = 0;
     yylval.location.text = cmm_clone_string(yytext);
 
     cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_ident(char* val) {
+    yylval                = make_default_ast();
     yylval.kind           = CMM_AST_NODE_IDENT;
     yylval.token          = CMM_TK_ID;
     yylval.data.val_ident = cmm_clone_string(val);
-    yylval.nodes          = NULL;
-    yylval.len            = 0;
     yylval.location.text  = cmm_clone_string(yytext);
 
     cmm_log_node(&yylval);
@@ -151,15 +159,11 @@ CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...) {
     va_list args;
     va_start(args, len);
 
-    CMM_AST_NODE ret;
-    ret.kind                = CMM_AST_NODE_TREE;
-    ret.token               = name;
-    ret.len                 = len;
-    ret.nodes               = malloc(sizeof(CMM_AST_NODE) * len);
-    ret.location.line       = 0x7fffffff;
-    ret.location.end_line   = -1;
-    ret.location.column     = 0x7fffffff;
-    ret.location.end_column = -1;
+    CMM_AST_NODE ret = make_default_ast();
+    ret.kind         = CMM_AST_NODE_TREE;
+    ret.token        = name;
+    ret.len          = len;
+    ret.nodes        = malloc(sizeof(CMM_AST_NODE) * len);
 
     for (int i = 0; i < len; i++) {
         CMM_AST_NODE     node   = va_arg(args, CMM_AST_NODE);
