@@ -33,6 +33,8 @@ enum CMM_SEM_AST_KIND {
     CMM_AST_KIND_TYPE,
     /// 变量的 context
     CMM_AST_KIND_VAR,
+    /// Ident context
+    CMM_ASR_KIND_IDENT,
     /// 声明的 context
     CMM_AST_KIND_DECLARE,
     /// 表达式的 context
