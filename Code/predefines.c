@@ -38,6 +38,38 @@ char* cmm_clone_string(const char* str) {
     return clone;
 }
 
+/// allocate a new string which is the concatenation of n strings
+char* cmm_concat_string(int len, ...) {
+    va_list args;
+
+    va_start(args, len);
+    size_t total_len = 0;
+    for (int i = 0; i < len; i++) {
+        char* str = va_arg(args, char*);
+        total_len += strlen(str);
+    }
+    va_end(args);
+
+    char* result = (char*)malloc((total_len + 1) * sizeof(char));
+    if (result == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+
+    va_start(args, len);
+    size_t offset = 0;
+    for (int i = 0; i < len; i++) {
+        char*  str     = va_arg(args, char*);
+        size_t str_len = strlen(str);
+        memcpy(result + offset, str, str_len);
+        offset += str_len;
+    }
+    result[total_len] = '\0';
+    va_end(args);
+
+    return result;
+}
+
 #define YYSTYPE CMM_AST_NODE
 
 void cmm_log_node(CMM_AST_NODE* val) {
@@ -183,6 +215,8 @@ CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...) {
             ret.nodes[i].location.end_column = ret.nodes[i - 1].location.end_column;
         }
     }
+
+    va_end(args);
 
     return ret;
 }

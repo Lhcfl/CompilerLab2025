@@ -1,12 +1,28 @@
 #include "semantic.h"
-#include "avl.h"
+#include "hashmap.h"
 #include "predefines.h"
 #include "syndef.h"
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+// #region Definations
 
 #define ANALYZE_EXPECT_OK(x)            \
     {                                   \
         if ((x) != CMM_SE_OK) return x; \
     }
+
+typedef struct SemanticContext {
+    char* name;
+    void* data;
+} SemanticContext;
+
+typedef struct StringList {
+    char*              name;
+    struct StringList* back;
+} StringList;
 
 enum CMM_SEMANTIC analyze_program(CMM_AST_NODE* node);
 enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE* node);
@@ -30,7 +46,96 @@ enum CMM_SEMANTIC analyze_dec_list(CMM_AST_NODE* node);
 enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node);
 enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* node);
 
-AVLTree analyze_context;
+// #endregion
+
+// #region Global States
+
+/// 错误列表
+CMM_SEMANTIC_ERROR semantic_errors[256];
+size_t             semantic_errors_count = 0;
+/// 一个哈希表，用来存放semantic的context
+struct hashmap*    semantic_context      = NULL;
+/// 一个链表，用来存放当前scope的名字。越是顶层越在后方
+StringList*        semantic_scope        = NULL;
+/// 一个链表，用来存放当前scope内产生的definations等等
+StringList*        semantic_definitions  = NULL;
+
+// #endregion
+
+
+// Functions
+
+void free_semantic_ctx(void* data) {
+    if (data == NULL) return;
+    const SemanticContext* ctx = data;
+    free(ctx->name);
+    free(ctx->data);
+}
+
+int semantic_ctx_compare(const void* a, const void* b, void* udata) {
+    const SemanticContext* ua = a;
+    const SemanticContext* ub = b;
+    return strcmp(ua->name, ub->name);
+}
+
+uint64_t senamtic_ctx_hash(const void* item, uint64_t seed0, uint64_t seed1) {
+    const SemanticContext* ctx = item;
+    return hashmap_sip(ctx->name, strlen(ctx->name), seed0, seed1);
+}
+
+
+/// 进入一个新的语义分析作用域
+StringList* enter_semantic_scope(char* name) {
+    StringList* scope = (StringList*)malloc(sizeof(StringList));
+    scope->name       = cmm_clone_string(name);
+    scope->back       = semantic_scope;
+    semantic_scope    = scope;
+    return scope;
+}
+
+/// 释放当前 StringList 节点，返回它的前驱（或者说后驱）
+StringList* free_string_list_node(StringList* node) {
+    if (node == NULL) { return NULL; }
+    StringList* ret = node->back;
+    free(node->name);
+    free(node);
+    return ret;
+}
+
+/// 退出当前的语义分析作用域
+void exit_semantic_scope() {
+    StringList* scope = semantic_scope;
+    semantic_scope    = semantic_scope->back;
+
+    // 释放当前作用域的所有定义
+    while ((semantic_definitions) != NULL) {
+        SemanticContext* deleted = (SemanticContext*)hashmap_delete(
+            semantic_context, &(SemanticContext){.name = semantic_definitions->name});
+
+        if (deleted != NULL) { free_semantic_ctx(deleted); }
+
+        semantic_definitions = free_string_list_node(semantic_definitions);
+    }
+
+    free(scope->name);
+    free(semantic_scope);
+}
+
+/// 在当前作用域下产生一个新的定义
+void push_defination(char* name) {
+    StringList* def      = (StringList*)malloc(sizeof(StringList));
+    def->name            = cmm_concat_string(3, semantic_scope->name, ":def:", name);
+    def->back            = semantic_definitions;
+    semantic_definitions = def;
+}
+
+void record_error(int lineno, enum CMM_SEMANTIC error) {
+    // too many errors
+    if (semantic_errors_count >= 256) { return; }
+    semantic_errors[semantic_errors_count].line = lineno;
+    semantic_errors[semantic_errors_count].type = error;
+    semantic_errors_count++;
+}
 
 CMM_SEM_TYPE make_type_primitive(char* name) {
     CMM_SEM_TYPE ret;
@@ -43,7 +148,24 @@ CMM_SEM_TYPE make_type_primitive(char* name) {
 }
 
 int cmm_semantic_analyze(CMM_AST_NODE* node) {
+    // prepare
+    semantic_context = hashmap_new(sizeof(SemanticContext),
+                                   65535,
+                                   0,
+                                   0,
+                                   senamtic_ctx_hash,
+                                   semantic_ctx_compare,
+                                   free_semantic_ctx,
+                                   NULL);
+    enter_semantic_scope("root");
+
+    /// analyze
     enum CMM_SEMANTIC x = analyze_program(node);
+
+    // clean
+    hashmap_free(semantic_context);
+    exit_semantic_scope();
+
     if (x != CMM_SE_OK) { return 1; }
     return 0;
 }
@@ -144,8 +266,32 @@ enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node) {
     return CMM_SE_BAD_AST_TREE;
 }
 
-/// TODO
-enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE* node);
+/// StructSpecifier: STRUCT OptTag LC DefList RC | STRUCT Tag
+enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE* node) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_StructSpecifier) { return CMM_SE_BAD_AST_TREE; }
+
+    CMM_AST_NODE* tag = node->nodes + 1;
+
+    if (node->len == 2) {
+        ANALYZE_EXPECT_OK(analyze_tag(node->nodes + 0));
+        // Struct 不可以声明
+
+
+    } else if (node->len == 4) {
+        // OptTag LC DefList RC
+        CMM_AST_NODE* opttag  = node->nodes + 1;
+        CMM_AST_NODE* deflist = node->nodes + 2;
+
+        enum CMM_SEMANTIC res = analyze_opt_tag(opttag);
+        if (res != CMM_SE_OK) { return res; }
+
+        // TODO
+        analyze_def_list(deflist);
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 /// Tag: empty | ID
 enum CMM_SEMANTIC analyze_opt_tag(CMM_AST_NODE* node) {

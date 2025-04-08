@@ -52,4 +52,14 @@ enum CMM_SEMANTIC {
 
 int cmm_semantic_analyze(CMM_AST_NODE* node);
 
+typedef struct CMM_SEMANTIC_ERROR {
+    /// 错误类型
+    enum CMM_SEMANTIC type;
+    /// 错误所在行号
+    int line;
+} CMM_SEMANTIC_ERROR;
+
+/// 出错时调用，获得错误数组
+CMM_SEMANTIC_ERROR* cmm_get_semantic_errors();
+
 #endif

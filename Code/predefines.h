@@ -14,7 +14,10 @@ extern int fileno(FILE*);
 
 void yyerror(char* msg);
 
+/// allocate a new string
 char* cmm_clone_string(const char* str);
+/// allocate a new string which is the concatenation of n strings
+char* cmm_concat_string(int n, ...);
 
 enum CMM_AST_NODE_KIND {
     CMM_AST_NODE_TOKEN,
@@ -67,9 +70,9 @@ typedef struct CMM_SEM_TYPE {
     /// 类型的 kind
     enum CMM_SEM_TYPE_KIND kind;
     /// 类型的名字
-    char* name;
+    char*                  name;
     /// 类型的绑定名。仅限结构体可用。
-    char* bind;
+    char*                  bind;
 
     /// 类型的“内部”。
     /// 对于原语，我们期望它是 NULL
