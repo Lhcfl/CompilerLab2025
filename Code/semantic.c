@@ -365,27 +365,114 @@ enum CMM_SEMANTIC analyze_tag(CMM_AST_NODE* node, struct AnalyCtxTag _) {
 
 /// VarDec: ID | VarDec LB INT RB
 /// TODO
-enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec);
+enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_VarDec) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len == 1) {
+        // ID
+        node->context.kind       = CMM_AST_KIND_IDENT;
+        node->context.data.ident = node->nodes->data.val_ident;
+        return CMM_SE_OK;
+    } else if (node->len == 4) {
+        // VarDec LB INT RB
+        ANALYZE_EXPECT_OK(analyze_var_dec(node->nodes + 0, (struct AnalyCtxVarDec){}));
+        // TODO
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 /// FunDec: ID LP VarList RP | ID LP RP
 /// TODO
-enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec);
+enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_FunDec) { return CMM_SE_BAD_AST_TREE; }
+
+    CMM_AST_NODE* id = node->nodes + 0;
+    if (node->len == 3) {
+        // TODO
+    } else if (node->len == 4) {
+        ANALYZE_EXPECT_OK(analyze_var_list(node->nodes + 2, (struct AnalyCtxVarList){}));
+        // TODO
+    } else {
+        return CMM_SE_BAD_AST_TREE;
+    }
+}
 
 /// VarList: ParamDec COMMA VarList | ParamDec
 /// TODO
-enum CMM_SEMANTIC analyze_var_list(CMM_AST_NODE* node, struct AnalyCtxVarList);
+enum CMM_SEMANTIC analyze_var_list(CMM_AST_NODE* node, struct AnalyCtxVarList _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_VarList) { return CMM_SE_BAD_AST_TREE; }
+
+    // TODO
+    if (node->len == 1) {
+        // ParamDec
+        return analyze_param_dec(node->nodes + 0, (struct AnalyCtxParamDec){});
+    } else if (node->len == 3) {
+        // ParamDec COMMA VarList
+        ANALYZE_EXPECT_OK(
+            analyze_param_dec(node->nodes + 0, (struct AnalyCtxParamDec){}));
+        return analyze_var_list(node->nodes + 2, (struct AnalyCtxVarList){});
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 /// ParamDec: Specifier VarDec
 /// TODO
-enum CMM_SEMANTIC analyze_param_dec(CMM_AST_NODE* node, struct AnalyCtxParamDec);
+enum CMM_SEMANTIC analyze_param_dec(CMM_AST_NODE* node, struct AnalyCtxParamDec _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_ParamDec) { return CMM_SE_BAD_AST_TREE; }
+    if (node->len != 2) return CMM_SE_BAD_AST_TREE;
+
+    // TODO
+    CMM_AST_NODE* specifier = node->nodes + 0;
+    CMM_AST_NODE* vardec    = node->nodes + 1;
+
+    analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+    analyze_var_dec(vardec, (struct AnalyCtxVarDec){});
+
+    return CMM_SE_OK;
+}
 
 /// CompSt: LC DefList StmtList RC
 /// TODO
-enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt);
+enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_CompSt) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len != 4) { return CMM_SE_BAD_AST_TREE; }
+
+    // LC DefList StmtList RC
+    CMM_AST_NODE* deflist  = node->nodes + 1;
+    CMM_AST_NODE* stmtlist = node->nodes + 2;
+
+    // TODO
+    analyze_def_list(deflist, (struct AnalyCtxDefList){});
+    analyze_stmt_list(stmtlist, (struct AnalyCtxStmtList){});
+
+    return CMM_SE_OK;
+}
 
 /// StmtList: /* empty */ | Stmt StmtList
 /// TODO
-enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* node, struct AnalyCtxStmtList);
+enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* node, struct AnalyCtxStmtList _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_StmtList) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len == 0) { return CMM_SE_OK; }
+
+    if (node->len == 2) {
+        // TODO
+        // Stmt StmtList
+        analyze_stmt(node->nodes + 0, (struct AnalyCtxStmt){});
+        return analyze_stmt_list(node->nodes + 1, (struct AnalyCtxStmtList){});
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 // Stmt: Exp SEMI
 //     | CompSt
@@ -394,25 +481,88 @@ enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* node, struct AnalyCtxStmtList)
 //     | IF LP Exp RP Stmt ELSE Stmt
 //     | WHILE LP Exp RP Stmt
 /// TODO
-enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt);
+enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_Stmt) { return CMM_SE_BAD_AST_TREE; }
+
+    // TODO
+    return CMM_SE_BAD_AST_TREE;
+}
 
 /// DefList: /* empty */ | Def DefList
 /// TODO
-enum CMM_SEMANTIC analyze_def_list(CMM_AST_NODE* node, struct AnalyCtxDefList);
+enum CMM_SEMANTIC analyze_def_list(CMM_AST_NODE* node, struct AnalyCtxDefList _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_DefList) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len == 0) { return CMM_SE_OK; }
+
+    if (node->len == 2) {
+        // TODO
+        // Def DefList
+        analyze_def(node->nodes + 0, (struct AnalyCtxDef){});
+        return analyze_def_list(node->nodes + 1, (struct AnalyCtxDefList){});
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 /// Def: Specifier DecList SEMI
 /// TODO
-enum CMM_SEMANTIC analyze_def(CMM_AST_NODE* node, struct AnalyCtxDef);
+enum CMM_SEMANTIC analyze_def(CMM_AST_NODE* node, struct AnalyCtxDef _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_Def) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len != 3) { return CMM_SE_BAD_AST_TREE; }
+
+    // Specifier DecList SEMI
+    CMM_AST_NODE* specifier = node->nodes + 0;
+    CMM_AST_NODE* declist   = node->nodes + 1;
+
+    // TODO
+    analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+    analyze_dec_list(declist, (struct AnalyCtxDecList){});
+
+    return CMM_SE_OK;
+}
 
 /// DecList: Dec | Dec COMMA DecList
 /// TODO
-enum CMM_SEMANTIC analyze_dec_list(CMM_AST_NODE* node, struct AnalyCtxDecList);
+enum CMM_SEMANTIC analyze_dec_list(CMM_AST_NODE* node, struct AnalyCtxDecList _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_DecList) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len == 1) {
+        // Dec
+        return analyze_dec(node->nodes + 0, (struct AnalyCtxDec){});
+    } else if (node->len == 3) {
+        // Dec COMMA DecList
+        analyze_dec(node->nodes + 0, (struct AnalyCtxDec){});
+        return analyze_dec_list(node->nodes + 2, (struct AnalyCtxDecList){});
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 
 
 /// Dec: VarDec | VarDec ASSIGNOP Exp
 /// TODO
-enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec);
+enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_Dec) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len == 1) {
+        // VarDec
+        return analyze_var_dec(node->nodes + 0, (struct AnalyCtxVarDec){});
+    } else if (node->len == 3) {
+        // VarDec ASSIGNOP Exp
+        analyze_var_dec(node->nodes + 0, (struct AnalyCtxVarDec){});
+        return analyze_exp(node->nodes + 2, (struct AnalyCtxExp){});
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 
 // Exp: Exp ASSIGNOP Exp
@@ -434,11 +584,32 @@ enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec);
 //     | INT
 //     | FLOAT
 /// TODO
-enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp);
+enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_Exp) { return CMM_SE_BAD_AST_TREE; }
+
+    // TODO
+
+    return CMM_SE_BAD_AST_TREE;
+}
 
 
 // Args: Exp COMMA Args
 //     | Exp
 /// TODO
-enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* node, struct AnalyCtxArgs);
+enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* node, struct AnalyCtxArgs _) {
+    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+    if (node->kind != CMM_TK_Args) { return CMM_SE_BAD_AST_TREE; }
+
+    if (node->len == 1) {
+        // Exp
+        return analyze_exp(node->nodes + 0, (struct AnalyCtxExp){});
+    } else if (node->len == 3) {
+        // Exp COMMA Args
+        analyze_exp(node->nodes + 0, (struct AnalyCtxExp){});
+        return analyze_args(node->nodes + 2, (struct AnalyCtxArgs){});
+    }
+
+    return CMM_SE_BAD_AST_TREE;
+}
 #pragma endregion
