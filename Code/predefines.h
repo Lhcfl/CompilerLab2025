@@ -130,5 +130,6 @@ char*        cmm_ty_make_array_typename(CMM_SEM_TYPE ty);
 char*        cmm_ty_make_fn_typename(CMM_SEM_TYPE ty);
 CMM_SEM_TYPE cmm_ty_make_primitive(char* name);
 CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size);
+CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size);
 CMM_SEM_TYPE cmm_ty_make_error();
 #endif

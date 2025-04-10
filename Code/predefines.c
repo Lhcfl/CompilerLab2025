@@ -281,6 +281,16 @@ CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size) {
     return ret;
 }
 
+CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size) {
+    CMM_SEM_TYPE ret;
+    ret.kind  = CMM_FUNCTION_TYPE;
+    ret.size  = size;
+    ret.inner = inner;
+    ret.bind  = NULL;
+    ret.name  = cmm_ty_make_fn_typename(ret);
+    return ret;
+}
+
 CMM_SEM_TYPE cmm_ty_make_error() {
     CMM_SEM_TYPE ret;
     ret.kind  = CMM_ERROR_TYPE;
