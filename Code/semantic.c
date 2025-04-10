@@ -8,19 +8,29 @@
 #include <stdlib.h>
 
 #pragma region Definations
-#define ANALYZE_EXPECT_OK(x)            \
-    {                                   \
-        if ((x) != CMM_SE_OK) return x; \
+#define ANALYZE_EXPECT_OK(x)              \
+    {                                     \
+        enum CMM_SEMANTIC ret = x;        \
+        if (ret != CMM_SE_OK) return ret; \
     }
 
-#define REPORT_AND_RETURN(e)                                       \
-    {                                                              \
-        if (e == CMM_SE_BAD_AST_TREE) {                            \
-            printf("bad ast tree occurred in %s\n", __FUNCTION__); \
-        }                                                          \
-        record_error(node->location.line, e);                      \
-        return e;                                                  \
+#define REPORT_AND_RETURN(e)                                                           \
+    {                                                                                  \
+        if (e == CMM_SE_BAD_AST_TREE) {                                                \
+            printf(                                                                    \
+                "bad ast tree occurred in %s: %s:%d\n", __func__, __FILE__, __LINE__); \
+        }                                                                              \
+        record_error(node->location.line, e);                                          \
+        return e;                                                                      \
     }
+
+#ifdef CMM_DEBUG_FLAGTRACE
+#    define FUNCTION_TRACE \
+        { printf("-> %s : %s:%d\n", __func__, __FILE__, __LINE__); }
+#else
+#    define FUNCTION_TRACE \
+        {}
+#endif
 
 typedef struct SemanticContext {
     char*        name;
@@ -40,10 +50,18 @@ enum VAR_WHERE {
     INSIDE_A_STRUCT,
 } where;
 
-struct AnalyCtxProgram {};
-struct AnalyCtxExtDefList {};
-struct AnalyCtxExtDef {};
-struct AnalyCtxSpecifier {};
+struct AnalyCtxProgram {
+    int _void;
+};
+struct AnalyCtxExtDefList {
+    int _void;
+};
+struct AnalyCtxExtDef {
+    int _void;
+};
+struct AnalyCtxSpecifier {
+    int _void;
+};
 struct AnalyCtxExtDecList {
     CMM_SEM_TYPE ty;
 };
@@ -57,12 +75,20 @@ struct AnalyCtxVarDec {
     enum VAR_WHERE where;
     CMM_SEM_TYPE   ty;
 };
-struct AnalyCtxStructSpecifier {};
-struct AnalyCtxOptTag {};
+struct AnalyCtxStructSpecifier {
+    int _void;
+};
+struct AnalyCtxOptTag {
+    int _void;
+};
 struct AnalyCtxDefList {
     enum VAR_WHERE where;
+    int*           struct_fields_len;
+    CMM_SEM_TYPE** struct_fields_types;
 };
-struct AnalyCtxTag {};
+struct AnalyCtxTag {
+    int _void;
+};
 struct AnalyCtxVarList {
     int*           list_len;
     CMM_SEM_TYPE** arg_types;
@@ -76,17 +102,25 @@ struct AnalyCtxStmtList {
 struct AnalyCtxStmt {
     CMM_SEM_TYPE current_fn_ty;
 };
-struct AnalyCtxExp {};
+struct AnalyCtxExp {
+    int _void;
+};
 struct AnalyCtxDef {
     enum VAR_WHERE where;
+    CMM_SEM_TYPE*  fill_into;
+    int*           offset;
 };
 struct AnalyCtxDecList {
     CMM_SEM_TYPE   ty;
     enum VAR_WHERE where;
+    CMM_SEM_TYPE*  fill_into;
+    int*           offset;
 };
 struct AnalyCtxDec {
     CMM_SEM_TYPE   ty;
     enum VAR_WHERE where;
+    CMM_SEM_TYPE*  fill_into;
+    int*           offset;
 };
 struct AnalyCtxArgs {
     CMM_SEM_TYPE calling;
@@ -159,6 +193,13 @@ const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type) {
     }
 }
 
+char* gen_unnamed_struct_name() {
+    static int unnamed_struct_count = 0;
+    char*      name                 = malloc(50);
+    sprintf(name, "(unnamed)struct_%d", unnamed_struct_count++);
+    return name;
+}
+
 void free_semantic_ctx(void* data) {
     // if (data == NULL) return;
     // const SemanticContext* ctx = data;
@@ -169,6 +210,7 @@ void free_semantic_ctx(void* data) {
 int semantic_ctx_compare(const void* a, const void* b, void* _udata) {
     const SemanticContext* ua = a;
     const SemanticContext* ub = b;
+    (void)(_udata);
     return strcmp(ua->name, ub->name);
 }
 
@@ -179,7 +221,7 @@ uint64_t senamtic_ctx_hash(const void* item, uint64_t seed0, uint64_t seed1) {
 
 
 /// 进入一个新的语义分析作用域
-StringList* enter_semantic_scope(char* name) {
+StringList* enter_semantic_scope(const char* name) {
     StringList* scope = (StringList*)malloc(sizeof(StringList));
     scope->name       = cmm_clone_string(name);
     scope->data       = NULL;
@@ -221,7 +263,14 @@ void exit_semantic_scope() {
 }
 
 char* _ctx_finder(const char* name, StringList* scope) {
-    return cmm_concat_string(3, scope->name, "::", name);
+    if (scope == NULL) {
+        return cmm_clone_string(name);
+    } else {
+        char* tmp = _ctx_finder(scope->name, scope->back);
+        char* ret = cmm_concat_string(3, tmp, "::", name);
+        free(tmp);
+        return ret;
+    }
 }
 
 /// 在当前作用域下产生一个新的定义或声明
@@ -235,10 +284,16 @@ int _push_def_or_dec(const char* name, CMM_SEM_TYPE ty, int is_dec) {
         hashmap_get(semantic_context, &(SemanticContext){.name = varname});
 
     if (existed != NULL) {
+#ifdef CMM_DEBUG_FLAGTRACE
+        printf("[warn] %s is dec/def ed\n", varname);
+#endif
         free(varname);
         if (is_dec) { return cmm_ty_eq(existed->ty, ty); }
         return 0;
     }
+#ifdef CMM_DEBUG_FLAGTRACE
+    printf("[register] %s : %s\n", varname, ty.name);
+#endif
 
     SemanticContext* ctx = (SemanticContext*)malloc(sizeof(SemanticContext));
     *ctx                 = (SemanticContext){.name = varname, .ty = ty};
@@ -283,6 +338,13 @@ const SemanticContext* find_defination(const char* name) {
 }
 
 void record_error(int lineno, enum CMM_SEMANTIC error) {
+#ifdef CMM_DEBUG_FLAGTRACE
+    printf("\033[1;31mError type %d at Line %d: %s\033[0m\n",
+           error,
+           lineno,
+           cmm_semantic_error_to_string(error));
+#endif
+
     // too many errors
     if (semantic_errors_count >= 65535) { return; }
     semantic_errors[semantic_errors_count].line = lineno;
@@ -309,7 +371,7 @@ int cmm_semantic_analyze(CMM_AST_NODE* node) {
     enter_semantic_scope("root");
 
     /// analyze
-    analyze_program(node, (struct AnalyCtxProgram){});
+    analyze_program(node, (struct AnalyCtxProgram){._void = 0});
 
     // clean
     // hashmap_free(semantic_context);
@@ -320,21 +382,18 @@ int cmm_semantic_analyze(CMM_AST_NODE* node) {
 
 /// Program: ExtDefList;
 enum CMM_SEMANTIC analyze_program(CMM_AST_NODE* node, struct AnalyCtxProgram _) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    (void)(_);
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Program) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->len != 1) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
-    return analyze_ext_def_list(node->nodes, (struct AnalyCtxExtDefList){});
+    return analyze_ext_def_list(node->nodes, (struct AnalyCtxExtDefList){._void = 0});
 }
 
 /// ExtDefList: /* empty */ | ExtDef ExtDefList
-enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE*             root,
-                                       struct AnalyCtxExtDefList args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE* root, struct AnalyCtxExtDefList _) {
+    (void)_;
+    FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     // 尾递归展开
     while (true) {
@@ -345,7 +404,7 @@ enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE*             root,
         if (node->len == 0) {
             return CMM_SE_OK;
         } else if (node->len == 2) {
-            analyze_ext_def(node->nodes + 0, (struct AnalyCtxExtDef){});
+            analyze_ext_def(node->nodes + 0, (struct AnalyCtxExtDef){._void = 0});
             // TODO
             node = node->nodes + 1;
         } else {
@@ -360,9 +419,8 @@ enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE*             root,
 /// ;
 /// 解析扩展的defination
 enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    (void)(_);
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_ExtDef) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -372,7 +430,7 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
     /// 无论这里有没有出错，我们让它继续往下走
     /// 错误的类型会被置为 error 这个特殊的原型类
     enum CMM_SEMANTIC spec_ok =
-        analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+        analyze_specifier(specifier, (struct AnalyCtxSpecifier){._void = 0});
 
     if (spec_ok != CMM_SE_OK) {
         specifier->context.kind      = CMM_AST_KIND_TYPE;
@@ -418,20 +476,18 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
 /// ExtDecList: VarDec | VarDec COMMA ExtDecList
 enum CMM_SEMANTIC analyze_ext_dec_list(CMM_AST_NODE*             root,
                                        struct AnalyCtxExtDecList args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     while (true) {
         // 结构性错误
         if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         if (node->token != CMM_TK_ExtDecList) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
-        enum CMM_SEMANTIC vardec = analyze_var_dec(node->nodes + 0,
-                                                   (struct AnalyCtxVarDec){
-                                                       .ty    = args.ty,
-                                                       .where = INSIDE_A_BLOCK,
-                                                   });
+        analyze_var_dec(node->nodes + 0,
+                        (struct AnalyCtxVarDec){
+                            .ty    = args.ty,
+                            .where = INSIDE_A_BLOCK,
+                        });
         if (node->len == 1) {
             return CMM_SE_OK;
         } else if (node->len == 3) {
@@ -445,9 +501,8 @@ enum CMM_SEMANTIC analyze_ext_dec_list(CMM_AST_NODE*             root,
 
 /// Specifier: TYPE | StructSpecifier
 enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node, struct AnalyCtxSpecifier _) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    (void)(_);
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Specifier) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->len != 1) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
@@ -460,12 +515,13 @@ enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node, struct AnalyCtxSpecifier
         return CMM_SE_OK;
     } else if (inner->token == CMM_TK_StructSpecifier) {
         enum CMM_SEMANTIC res =
-            analyze_struct_specifier(node->nodes + 0, (struct AnalyCtxStructSpecifier){});
+            analyze_struct_specifier(inner, (struct AnalyCtxStructSpecifier){._void = 0});
         if (res == CMM_SE_OK) {
             node->context.data.type = inner->context.data.type;
         } else {
             node->context.data.type = cmm_ty_make_error();
         }
+        return CMM_SE_OK;
     }
 
     REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
@@ -474,63 +530,80 @@ enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node, struct AnalyCtxSpecifier
 /// StructSpecifier: STRUCT OptTag LC DefList RC | STRUCT Tag
 enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
                                            struct AnalyCtxStructSpecifier _) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    (void)(_);
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_StructSpecifier) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
     CMM_AST_NODE* tag = node->nodes + 1;
 
     if (node->len == 2) {
-        ANALYZE_EXPECT_OK(analyze_tag(tag, (struct AnalyCtxTag){}));
-        node->context.kind = CMM_AST_KIND_TYPE;
+        ANALYZE_EXPECT_OK(analyze_tag(tag, (struct AnalyCtxTag){._void = 0}));
+        node->context.kind         = CMM_AST_KIND_TYPE;
+        const SemanticContext* ctx = find_defination(tag->context.data.ident);
+        if (ctx == NULL) {
+            node->context.data.type = cmm_ty_make_error();
+            REPORT_AND_RETURN(CMM_SE_UNDEFINED_STRUCT);
+        } else {
+            node->context.data.type = ctx->ty;
+        }
         /// TODO
-
-    } else if (node->len == 4) {
-        // OptTag LC DefList RC
+    } else if (node->len == 5) {
+        //  STRUCT OptTag LC DefList RC
         CMM_AST_NODE* opttag  = node->nodes + 1;
         CMM_AST_NODE* deflist = node->nodes + 3;
 
-        ANALYZE_EXPECT_OK(analyze_opt_tag(opttag, (struct AnalyCtxOptTag){}));
+        ANALYZE_EXPECT_OK(analyze_opt_tag(opttag, (struct AnalyCtxOptTag){._void = 0}));
 
         // 如果 struct 有名字
-        if (opttag->context.kind == CMM_AST_KIND_IDENT) {
-            const char* name = opttag->context.data.ident;
-        }
+        char* name = opttag->context.kind == CMM_AST_KIND_IDENT
+                         ? opttag->context.data.ident
+                         : gen_unnamed_struct_name();
+        enter_semantic_scope(name);
 
-        // TODO
-        // 我们在 deflist 中 push 这个 defination
-        analyze_def_list(deflist, (struct AnalyCtxDefList){.where = INSIDE_A_STRUCT});
+        CMM_SEM_TYPE* inner = NULL;
+        int           size  = 0;
+
+        analyze_def_list(deflist,
+                         (struct AnalyCtxDefList){
+                             .where               = INSIDE_A_STRUCT,
+                             .struct_fields_len   = &size,
+                             .struct_fields_types = &inner,
+                         });
+
+        exit_semantic_scope();
+        CMM_SEM_TYPE ty = cmm_ty_make_struct(name, inner, size);
+        push_defination(name, ty);
+        node->context.data.type = ty;
+    } else {
+        REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     }
 
-    REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
+    return CMM_SE_OK;
 }
 
 /// Tag: empty | ID
 enum CMM_SEMANTIC analyze_opt_tag(CMM_AST_NODE* node, struct AnalyCtxOptTag _) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    (void)(_);
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_OptTag) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->len == 0) { return CMM_SE_OK; }
 
     if (node->len != 1) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     CMM_AST_NODE* tag = node->nodes + 0;
-    if (tag->token != CMM_TK_Tag) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
+    if (tag->token != CMM_TK_ID) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
     node->context.kind       = CMM_AST_KIND_IDENT;
     node->context.data.ident = tag->data.val_ident;
     return CMM_SE_OK;
-};
+}
 
 
 /// Tag: ID
 enum CMM_SEMANTIC analyze_tag(CMM_AST_NODE* node, struct AnalyCtxTag _) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    (void)(_);
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Tag) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->len != 1) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
@@ -546,9 +619,7 @@ enum CMM_SEMANTIC analyze_tag(CMM_AST_NODE* node, struct AnalyCtxTag _) {
 /// VarDec: ID | VarDec LB INT RB
 /// TODO
 enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_VarDec) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -557,9 +628,9 @@ enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec args
         node->context.kind       = CMM_AST_KIND_IDENT;
         node->context.data.ident = node->nodes->data.val_ident;
         /// 注册这个变量
-
-        int res = push_defination(node->nodes->data.val_ident, args.ty);
-        if (res == 0) {
+        args.ty.bind             = node->context.data.ident;
+        int ok                   = push_defination(node->nodes->data.val_ident, args.ty);
+        if (ok) {
             node->context.data.type = args.ty;
         } else {
             node->context.data.type = cmm_ty_make_error();
@@ -575,24 +646,25 @@ enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec args
         int           array_size = node->nodes[2].data.val_int;
         CMM_SEM_TYPE* ty         = malloc(sizeof(CMM_SEM_TYPE));
         *ty                      = args.ty;
+        CMM_AST_NODE* vardec     = node->nodes + 0;
         ANALYZE_EXPECT_OK(analyze_var_dec(
-            node->nodes + 0,
-            (struct AnalyCtxVarDec){.ty = cmm_ty_make_array(ty, array_size)}));
+            vardec, (struct AnalyCtxVarDec){.ty = cmm_ty_make_array(ty, array_size)}));
 
         node->context.kind       = CMM_AST_KIND_IDENT;
-        node->context.data.ident = node->nodes[2].context.data.ident;
+        node->context.data.ident = vardec->context.data.ident;
+        node->context.data.type  = vardec->context.data.type;
         // TODO
+    } else {
+        REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     }
 
-    REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
+    return CMM_SE_OK;
 }
 
 /// FunDec: ID LP VarList RP | ID LP RP
 /// TODO
 enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_FunDec) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -633,9 +705,7 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
 /// VarList: ParamDec COMMA VarList | ParamDec
 /// TODO
 enum CMM_SEMANTIC analyze_var_list(CMM_AST_NODE* root, struct AnalyCtxVarList args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     CMM_AST_NODE* node      = root;
     int           len       = 0;
     /// 都256个参数了不至于这都不够吧？？
@@ -672,9 +742,7 @@ enum CMM_SEMANTIC analyze_var_list(CMM_AST_NODE* root, struct AnalyCtxVarList ar
 /// ParamDec: Specifier VarDec
 /// TODO
 enum CMM_SEMANTIC analyze_param_dec(CMM_AST_NODE* node, struct AnalyCtxParamDec args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_ParamDec) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->len != 2) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
@@ -684,7 +752,7 @@ enum CMM_SEMANTIC analyze_param_dec(CMM_AST_NODE* node, struct AnalyCtxParamDec 
     CMM_AST_NODE* vardec    = node->nodes + 1;
 
     enum CMM_SEMANTIC spec_ok =
-        analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+        analyze_specifier(specifier, (struct AnalyCtxSpecifier){._void = 0});
 
     if (spec_ok != CMM_SE_OK) {
         specifier->context.kind           = CMM_AST_KIND_TYPE;
@@ -714,9 +782,7 @@ enum CMM_SEMANTIC analyze_param_dec(CMM_AST_NODE* node, struct AnalyCtxParamDec 
 /// CompSt: LC DefList StmtList RC
 /// TODO
 enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_CompSt) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -729,7 +795,7 @@ enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt args
     enter_semantic_scope("&");
 
     // TODO
-    analyze_def_list(deflist, (struct AnalyCtxDefList){});
+    analyze_def_list(deflist, (struct AnalyCtxDefList){.where = INSIDE_A_BLOCK});
     analyze_stmt_list(stmtlist,
                       (struct AnalyCtxStmtList){.current_fn_ty = args.current_fn_ty});
 
@@ -741,9 +807,7 @@ enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt args
 /// StmtList: /* empty */ | Stmt StmtList
 /// TODO
 enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* root, struct AnalyCtxStmtList args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     while (true) {
         if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
@@ -772,22 +836,20 @@ enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* root, struct AnalyCtxStmtList 
 //     | WHILE LP Exp RP Stmt
 /// TODO
 enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Stmt) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
     CMM_AST_NODE* first = node->nodes + 0;
     switch (first->token) {
-        case CMM_TK_Exp: analyze_exp(first, (struct AnalyCtxExp){}); break;
+        case CMM_TK_Exp: analyze_exp(first, (struct AnalyCtxExp){._void = 0}); break;
         case CMM_TK_CompSt:
             analyze_comp_st(first,
                             (struct AnalyCtxCompSt){.current_fn_ty = args.current_fn_ty});
             break;
         case CMM_TK_RETURN: {
             CMM_AST_NODE* exp = node->nodes + 1;
-            analyze_exp(exp, (struct AnalyCtxExp){});
+            analyze_exp(exp, (struct AnalyCtxExp){._void = 0});
             if (!cmm_ty_fitable(args.current_fn_ty.inner[args.current_fn_ty.size - 1],
                                 exp->context.data.type)) {
                 REPORT_AND_RETURN(CMM_SE_RETURN_TYPE_ERROR)
@@ -796,7 +858,7 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
         }
         case CMM_TK_IF: {
             CMM_AST_NODE* exp = node->nodes + 2;
-            analyze_exp(exp, (struct AnalyCtxExp){});
+            analyze_exp(exp, (struct AnalyCtxExp){._void = 0});
             analyze_stmt(node->nodes + 4,
                          (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
             if (node->len == 7) {
@@ -808,7 +870,7 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
         }
         case CMM_TK_WHILE: {
             CMM_AST_NODE* exp = node->nodes + 2;
-            analyze_exp(exp, (struct AnalyCtxExp){});
+            analyze_exp(exp, (struct AnalyCtxExp){._void = 0});
             analyze_stmt(node->nodes + 4,
                          (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
             break;
@@ -824,20 +886,31 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
 /// DefList: /* empty */ | Def DefList
 /// TODO
 enum CMM_SEMANTIC analyze_def_list(CMM_AST_NODE* root, struct AnalyCtxDefList args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
+
+    CMM_SEM_TYPE* fields     = malloc(sizeof(CMM_SEM_TYPE) * 500);
+    int           fileds_len = 0;
+
     while (true) {
         if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         if (node->token != CMM_TK_DefList) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
         if (node->len == 0) {
+            if (args.where == INSIDE_A_STRUCT) {
+                *args.struct_fields_len   = fileds_len;
+                *args.struct_fields_types = fields;
+            } else {
+                free(fields);
+            }
             return CMM_SE_OK;
         } else if (node->len == 2) {
             // TODO
             // Def DefList
-            analyze_def(node->nodes + 0, (struct AnalyCtxDef){.where = args.where});
+            analyze_def(
+                node->nodes + 0,
+                (struct AnalyCtxDef){
+                    .where = args.where, .fill_into = fields, .offset = &fileds_len});
 
             node = node->nodes + 1;
         } else {
@@ -849,9 +922,7 @@ enum CMM_SEMANTIC analyze_def_list(CMM_AST_NODE* root, struct AnalyCtxDefList ar
 /// Def: Specifier DecList SEMI
 /// TODO
 enum CMM_SEMANTIC analyze_def(CMM_AST_NODE* node, struct AnalyCtxDef args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Def) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -862,7 +933,7 @@ enum CMM_SEMANTIC analyze_def(CMM_AST_NODE* node, struct AnalyCtxDef args) {
     CMM_AST_NODE* declist   = node->nodes + 1;
 
     enum CMM_SEMANTIC spec_ok =
-        analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+        analyze_specifier(specifier, (struct AnalyCtxSpecifier){._void = 0});
 
     if (spec_ok != CMM_SE_OK) {
         specifier->context.kind           = CMM_AST_KIND_TYPE;
@@ -872,7 +943,10 @@ enum CMM_SEMANTIC analyze_def(CMM_AST_NODE* node, struct AnalyCtxDef args) {
     CMM_SEM_TYPE spec_ty = specifier->context.data.type;
 
     analyze_dec_list(declist,
-                     (struct AnalyCtxDecList){.ty = spec_ty, .where = args.where});
+                     (struct AnalyCtxDecList){.ty        = spec_ty,
+                                              .where     = args.where,
+                                              .fill_into = args.fill_into,
+                                              .offset    = args.offset});
 
     return CMM_SE_OK;
 }
@@ -880,36 +954,32 @@ enum CMM_SEMANTIC analyze_def(CMM_AST_NODE* node, struct AnalyCtxDef args) {
 /// DecList: Dec | Dec COMMA DecList
 /// TODO
 enum CMM_SEMANTIC analyze_dec_list(CMM_AST_NODE* root, struct AnalyCtxDecList args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     while (true) {
         if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         if (node->token != CMM_TK_DecList) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
+        if (node->len != 1 && node->len != 3) { REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE); }
+
+        analyze_dec(node->nodes + 0,
+                    (struct AnalyCtxDec){.ty        = args.ty,
+                                         .where     = args.where,
+                                         .fill_into = args.fill_into,
+                                         .offset    = args.offset});
 
         if (node->len == 1) {
             // Dec
-            analyze_dec(node->nodes + 0,
-                        (struct AnalyCtxDec){.ty = args.ty, .where = args.where});
             return CMM_SE_OK;
         } else if (node->len == 3) {
             // Dec COMMA DecList
-            analyze_dec(node->nodes + 0,
-                        (struct AnalyCtxDec){.ty = args.ty, .where = args.where});
-
             node = node->nodes + 2;
-        } else {
-            REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
     }
 }
 
 /// Dec: VarDec | VarDec ASSIGNOP Exp
 enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Dec) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -919,12 +989,15 @@ enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec args) {
     ANALYZE_EXPECT_OK(analyze_var_dec(
         vardec, (struct AnalyCtxVarDec){.where = args.where, .ty = args.ty}));
 
+    args.fill_into[*args.offset] = vardec->context.data.type;
+    *args.offset                 = *args.offset + 1;
+
     if (node->len == 3) {
         if (args.where == INSIDE_A_STRUCT) {
             REPORT_AND_RETURN(CMM_SE_BAD_STRUCT_DOMAIN);
         }
         CMM_AST_NODE* exp = node->nodes + 2;
-        analyze_exp(exp, (struct AnalyCtxExp){});
+        analyze_exp(exp, (struct AnalyCtxExp){._void = 0});
         // 赋值语句的类型检查
         if (!cmm_ty_fitable(exp->context.data.type, args.ty)) {
             REPORT_AND_RETURN(CMM_SE_ASSIGN_TYPE_ERROR);
@@ -954,9 +1027,7 @@ enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec args) {
 //     | INT
 //     | FLOAT
 enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     if (node == NULL) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     if (node->token != CMM_TK_Exp) REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
 
@@ -967,13 +1038,31 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
     CMM_AST_NODE* a = node->nodes + 0;
 
     if (a->token == CMM_TK_Exp) {
+        analyze_exp(a, args);
+
         CMM_AST_NODE* op     = node->nodes + 1;
         CMM_AST_NODE* b      = node->nodes + 2;
         CMM_SEM_TYPE  type_a = a->context.data.type;
 
-        analyze_exp(a, args);
-
         if (op->token == CMM_TK_DOT) {
+            if (type_a.kind == CMM_ERROR_TYPE) {
+                node->context.data.type  = cmm_ty_make_error();
+                node->context.value_kind = LVALUE;
+                return CMM_SE_OK;
+            }
+#ifdef CMM_DEBUG_FLAGTRACE
+            printf("trying get %s.%s (size = %d, {",
+                   type_a.name,
+                   b->data.val_ident,
+                   type_a.size);
+            fflush(stdout);
+            for (int i = 0; i < type_a.size; i++) {
+                printf(" %s: %s,", type_a.inner[i].bind, type_a.inner[i].name);
+                fflush(stdout);
+            }
+            printf(" }\n");
+            fflush(stdout);
+#endif
             if (type_a.kind != CMM_PROD_TYPE) {
                 REPORT_AND_RETURN(CMM_SE_BAD_STRUCT_ACCESS);
             }
@@ -1083,9 +1172,7 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
 // Args: Exp COMMA Args
 //     | Exp
 enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* root, struct AnalyCtxArgs args) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering %s\n", __FUNCTION__);
-#endif
+    FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
 
     // args.calling.size >= 2
@@ -1098,7 +1185,7 @@ enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* root, struct AnalyCtxArgs args) {
         if (i == return_type_idx) { REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH); }
 
         CMM_AST_NODE* param = node->nodes + 0;
-        analyze_exp(param, (struct AnalyCtxExp){});
+        analyze_exp(param, (struct AnalyCtxExp){._void = 0});
 
         if (node->len == 1) {
             if (i != tail_idx) { REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH); }

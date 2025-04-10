@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 
     if (sem_error_cnt > 0) {
         CMM_SEMANTIC_ERROR* errors = cmm_get_semantic_errors();
-        for (int i = 1; i <= sem_error_cnt; i++) {
+        for (int i = 0; i < sem_error_cnt; i++) {
             printf("Error type %d at Line %d: %s\n",
                    errors[i].type,
                    errors[i].line,

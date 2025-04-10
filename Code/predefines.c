@@ -271,6 +271,16 @@ CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size) {
     return ret;
 }
 
+CMM_SEM_TYPE cmm_ty_make_struct(char* name, CMM_SEM_TYPE* inner, int size) {
+    CMM_SEM_TYPE ret;
+    ret.kind  = CMM_PROD_TYPE;
+    ret.size  = size;
+    ret.inner = inner;
+    ret.bind  = NULL;
+    ret.name  = name;
+    return ret;
+}
+
 CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size) {
     CMM_SEM_TYPE ret;
     ret.kind  = CMM_FUNCTION_TYPE;
