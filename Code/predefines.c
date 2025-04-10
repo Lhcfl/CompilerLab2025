@@ -75,9 +75,6 @@ char* cmm_concat_string(int len, ...) {
 #define YYSTYPE CMM_AST_NODE
 
 void cmm_log_node(CMM_AST_NODE* val) {
-#ifndef CMM_DEBUG_FLAG
-    return;
-#endif
     printf("{ \"line\": %d, \"col\": %d, \"end_line\": %d, \"end_col\": %d, ",
            val->location.line,
            val->location.column,
@@ -138,8 +135,6 @@ void cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token) {
     yylval.kind          = CMM_AST_NODE_TOKEN;
     yylval.token         = token;
     yylval.location.text = cmm_clone_string(yytext);
-
-    cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_int(int val) {
@@ -148,8 +143,6 @@ void cmm_send_yylval_int(int val) {
     yylval.token         = CMM_TK_INT;
     yylval.data.val_int  = val;
     yylval.location.text = cmm_clone_string(yytext);
-
-    cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_float(float val) {
@@ -158,8 +151,6 @@ void cmm_send_yylval_float(float val) {
     yylval.token          = CMM_TK_FLOAT;
     yylval.data.val_float = val;
     yylval.location.text  = cmm_clone_string(yytext);
-
-    cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_type(char* val) {
@@ -168,8 +159,6 @@ void cmm_send_yylval_type(char* val) {
     yylval.token         = CMM_TK_TYPE;
     yylval.data.val_type = cmm_clone_string(val);
     yylval.location.text = cmm_clone_string(yytext);
-
-    cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_ident(char* val) {
@@ -178,8 +167,6 @@ void cmm_send_yylval_ident(char* val) {
     yylval.token          = CMM_TK_ID;
     yylval.data.val_ident = cmm_clone_string(val);
     yylval.location.text  = cmm_clone_string(yytext);
-
-    cmm_log_node(&yylval);
 }
 
 void cmm_send_yylval_loc(int line, int column) {
@@ -248,14 +235,14 @@ char* cmm_ty_make_array_typename(CMM_SEM_TYPE ty) {
 
 /// @returns arg -> arg -> arg -> ... -> ret
 char* cmm_ty_make_fn_typename(CMM_SEM_TYPE ty) {
-    size_t len;
-    for (size_t i = 0; i < ty.size; i++) {
+    size_t len = 0;
+    for (int i = 0; i < ty.size; i++) {
         len += strlen(ty.inner[i].name);
         len += 4;   // 4 for " -> "
     }
     char* ret    = malloc(sizeof(char) * (len + 3));
     int   offset = 0;
-    for (size_t i = 0; i < ty.size; i++) {
+    for (int i = 0; i < ty.size; i++) {
         strcpy(ret + offset, ty.inner[i].name);
         offset += strlen(ty.inner[i].name);
         strcpy(ret + offset, " -> ");

@@ -52,4 +52,5 @@ char* cmm_token_tostring(enum CMM_SYNTAX_TOKEN token) {
         case CMM_TK_Dec: return "Dec";
         case CMM_TK_Args: return "Args";
     }
+    return "unexpected";
 }

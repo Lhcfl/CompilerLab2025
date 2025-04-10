@@ -89,6 +89,7 @@ char* cmm_token_tostring(enum CMM_SYNTAX_TOKEN token) {
     switch (token) {
 ${node_names.map((x) => `        case CMM_TK_${x}: return "${x}";`).join("\n")}
     }
+    return "unexpected";
 }
 `
 );

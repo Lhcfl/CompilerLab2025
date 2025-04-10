@@ -2,12 +2,12 @@
 # ************ 遇到不明白的地方请google以及阅读手册 *************
 
 # 编译器设定和编译选项
-CC = gcc
-# CC = gcc -DCMM_DEBUG_FLAG
+# CC = gcc
+CC = gcc -DCMM_DEBUG_FLAGTRACE
 NODE = node
 FLEX = flex
 BISON = bison
-CFLAGS = -std=c99
+CFLAGS = -std=c99 -Wall -Wextra
 
 # 编译目标：src目录下的所有.c文件
 CFILES = $(shell find Code/ -name "*.c")

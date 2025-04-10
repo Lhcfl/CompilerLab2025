@@ -62,6 +62,12 @@ int main(int argc, char** argv) {
     printf("\n\n======================\n\n");
 #endif
 
+#ifdef CMM_DEBUG_FLAGTRACE
+    printf("\n\n======================\n\n");
+    cmm_log_node(&cmm_parsed_root);
+    printf("\n\n======================\n\n");
+#endif
+
 #ifdef BYYL_IS_LAB1
     cmm_print_node(&cmm_parsed_root, 0);
 #endif
