@@ -26,7 +26,7 @@
 
 #ifdef CMM_DEBUG_FLAGTRACE
 #    define FUNCTION_TRACE \
-        { printf("-> %s : %s:%d\n", __func__, __FILE__, __LINE__); }
+        { printf("    -> %s : %s:%d\n", __func__, __FILE__, __LINE__); }
 #else
 #    define FUNCTION_TRACE \
         {}
@@ -688,6 +688,8 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
                              .arg_types = &inner,
                          });
 
+        inner[list_len++] = args.return_ty;
+
         fnty = cmm_ty_make_func(inner, list_len);
     } else {
         REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
@@ -850,8 +852,12 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
         case CMM_TK_RETURN: {
             CMM_AST_NODE* exp = node->nodes + 1;
             analyze_exp(exp, (struct AnalyCtxExp){._void = 0});
-            if (!cmm_ty_fitable(args.current_fn_ty.inner[args.current_fn_ty.size - 1],
-                                exp->context.data.type)) {
+            CMM_SEM_TYPE need = args.current_fn_ty.inner[args.current_fn_ty.size - 1];
+            CMM_SEM_TYPE got  = exp->context.data.type;
+            if (!cmm_ty_fitable(need, got)) {
+#ifdef CMM_DEBUG_FLAGTRACE
+                printf("need %s, got %s\n", need.name, got.name);
+#endif
                 REPORT_AND_RETURN(CMM_SE_RETURN_TYPE_ERROR)
             }
             break;
