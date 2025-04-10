@@ -1225,15 +1225,15 @@ enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* root, struct AnalyCtxArgs args) {
         CMM_AST_NODE* param = node->nodes + 0;
         analyze_exp(param, (struct AnalyCtxExp){._void = 0});
 
+        if (!cmm_ty_fitable(args.calling.inner[i], param->context.data.type)) {
+            REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH);
+        }
+
         if (node->len == 1) {
             if (i != tail_idx) { REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH); }
             break;
         } else if (node->len == 3) {
             node = node + 2;
-        }
-
-        if (!cmm_ty_fitable(args.calling.inner[i], param->context.data.type)) {
-            REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH);
         }
     }
 
