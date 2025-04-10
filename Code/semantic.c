@@ -81,7 +81,9 @@ struct AnalyCtxDec {
     CMM_SEM_TYPE   ty;
     enum VAR_WHERE where;
 };
-struct AnalyCtxArgs {};
+struct AnalyCtxArgs {
+    CMM_SEM_TYPE calling;
+};
 
 enum CMM_SEMANTIC analyze_program(CMM_AST_NODE* node, struct AnalyCtxProgram args);
 enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE*             node,
@@ -859,8 +861,26 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
             default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
     } else if (a->token == CMM_TK_ID) {
-        CMM_AST_NODE* b = node->nodes + 2;
-        // TODO function call
+        const SemanticContext* a_def = find_defination(a->data.val_ident);
+        if (a_def == NULL) {
+            node->context.data.type = cmm_ty_make_error();
+            return CMM_SE_OK;
+        } else {
+            node->context.data.type = a_def->ty;
+        }
+
+        if (a_def->ty.kind != CMM_FUNCTION_TYPE) {
+            REPORT_AND_RETURN(CMM_SE_BAD_FUNCTION_CALL);
+        }
+
+        node->context.data.type = a_def->ty.inner[a_def->ty.size - 1];
+
+        if (node->len == 3) {
+            if (a_def->ty.size != 1) { REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH); }
+        } else if (node->len == 4) {
+            CMM_AST_NODE* arg_node = node->nodes + 2;
+            analyze_args(arg_node, (struct AnalyCtxArgs){.calling = a_def->ty});
+        }
     } else if (a->token == CMM_TK_MINUS) {
         CMM_AST_NODE* b = node->nodes + 1;
         analyze_exp(b, args);
@@ -872,17 +892,11 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         CMM_SEM_TYPE type_b     = b->context.data.type;
         node->context.data.type = type_b;
     } else if (a->token == CMM_TK_LP) {
+        // 括号
         CMM_AST_NODE* b = node->nodes + 1;
         analyze_exp(b, args);
         CMM_SEM_TYPE type_b     = b->context.data.type;
         node->context.data.type = type_b;
-    } else if (a->token == CMM_TK_ID) {
-        const SemanticContext* a_def = find_defination(a->data.val_ident);
-        if (a_def == NULL) {
-            node->context.data.type = cmm_ty_make_error();
-        } else {
-            node->context.data.type = a_def->ty;
-        }
     } else if (a->token == CMM_TK_INT) {
         node->context.data.type = cmm_ty_make_primitive("int");
     } else if (a->token == CMM_TK_FLOAT) {
@@ -898,19 +912,34 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
 // Args: Exp COMMA Args
 //     | Exp
 /// TODO
-enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* node, struct AnalyCtxArgs _) {
-    if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
-    if (node->kind != CMM_TK_Args) { return CMM_SE_BAD_AST_TREE; }
+enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* root, struct AnalyCtxArgs args) {
+    CMM_AST_NODE* node = root;
 
-    if (node->len == 1) {
-        // Exp
-        return analyze_exp(node->nodes + 0, (struct AnalyCtxExp){});
-    } else if (node->len == 3) {
-        // Exp COMMA Args
-        analyze_exp(node->nodes + 0, (struct AnalyCtxExp){});
-        return analyze_args(node->nodes + 2, (struct AnalyCtxArgs){});
+    // args.calling.size >= 2
+    int return_type_idx = args.calling.size - 1;
+    int tail_idx        = args.calling.size - 2;
+    for (int i = 0;; i++) {
+        if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
+        if (node->kind != CMM_TK_Args) { return CMM_SE_BAD_AST_TREE; }
+        if (node->len != 1 && node->len != 3) { return CMM_SE_BAD_AST_TREE; }
+        if (i == return_type_idx) { REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH); }
+
+        CMM_AST_NODE* param = node->nodes + 0;
+        analyze_exp(param, (struct AnalyCtxExp){});
+
+        if (node->len == 1) {
+            if (i != tail_idx) { REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH); }
+            break;
+        } else if (node->len == 3) {
+            node = node + 2;
+        }
+
+        if (!cmm_ty_fitable(args.calling.inner[i], param->context.data.type)) {
+            REPORT_AND_RETURN(CMM_SE_ARGS_NOT_MATCH);
+        }
     }
 
-    return CMM_SE_BAD_AST_TREE;
+    root->context.kind      = CMM_AST_KIND_TYPE;
+    root->context.data.type = args.calling.inner[return_type_idx];
 }
 #pragma endregion
