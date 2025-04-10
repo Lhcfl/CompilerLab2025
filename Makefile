@@ -3,7 +3,7 @@
 
 # 编译器设定和编译选项
 CC = gcc -DCMM_DEBUG_FLAGTRACE -O0 -DDEBUG -ggdb -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -lrt -fno-sanitize-recover -fstack-protector -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
-# CC := gcc
+CC := gcc
 
 NODE = node
 FLEX = flex

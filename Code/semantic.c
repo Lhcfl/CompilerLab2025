@@ -267,6 +267,7 @@ char* _ctx_finder(const char* name, StringList* scope) {
         return cmm_clone_string(name);
     } else {
         char* tmp = _ctx_finder(scope->name, scope->back);
+        if (name == NULL) { return tmp; }
         char* ret = cmm_concat_string(3, tmp, "::", name);
         free(tmp);
         return ret;
@@ -329,10 +330,21 @@ const SemanticContext* find_defination(const char* name) {
 
     while (ret == NULL && scope != NULL) {
         char* varname = _ctx_finder(name, scope);
+#ifdef CMM_DEBUG_FLAGTRACE
+        printf("[search] finding %s\n", varname);
+#endif
         ret = hashmap_get(semantic_context, &(SemanticContext){.name = varname});
         free(varname);
         scope = scope->back;
     }
+
+#ifdef CMM_DEBUG_FLAGTRACE
+    if (ret == NULL) {
+        printf("[search] not found\n");
+    } else {
+        printf("[search] found: ty = %s\n", ret->ty.name);
+    }
+#endif
 
     return ret;
 }
@@ -449,7 +461,8 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
     } else if (decl->token == CMM_TK_FunDec) {
         /// 还需要分析函数体，所以不关心这里的错误
         /// decl->nodes 是一个 &ID，否则AST错误
-        enter_semantic_scope(decl->nodes->data.val_ident);
+        char* name = decl->nodes->data.val_ident;
+        enter_semantic_scope(name);
         analyze_fun_dec(decl, (struct AnalyCtxFunDec){.return_ty = spec_ty});
         if (node->len == 3) {
             // FunDec CompSt
@@ -696,7 +709,14 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
     }
 
     // TODO 判断dec有误？
-    push_declaration(id_name, fnty);
+    {
+        /// 函数定义在上层作用域
+        /// 先修改当前作用域，然后再恢复
+        StringList* current_scope = semantic_scope;
+        semantic_scope            = semantic_scope->back;
+        push_declaration(id_name, fnty);
+        semantic_scope = current_scope;
+    }
 
     node->context.kind       = CMM_AST_KIND_DECLARE;
     node->context.data.type  = fnty;
@@ -1118,6 +1138,9 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
             default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
     } else if (a->token == CMM_TK_ID) {
+#ifdef CMM_DEBUG_FLAGTRACE
+        printf("[search] will find %s\n", a->data.val_ident);
+#endif
         const SemanticContext* a_def = find_defination(a->data.val_ident);
         if (a_def == NULL) {
             if (node->len == 1) {
