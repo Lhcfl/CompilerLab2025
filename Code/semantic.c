@@ -160,6 +160,7 @@ size_t             semantic_errors_count = 0;
 struct hashmap*    semantic_context      = NULL;
 /// 一个链表，用来存放当前scope的名字。越是顶层越在后方
 StringList*        semantic_scope        = NULL;
+StringList*        root_semantic_scope   = NULL;
 #pragma endregion
 
 
@@ -381,6 +382,7 @@ int cmm_semantic_analyze(CMM_AST_NODE* node) {
                                    free_semantic_ctx,
                                    NULL);
     enter_semantic_scope("root");
+    root_semantic_scope = semantic_scope;
 
     /// analyze
     analyze_program(node, (struct AnalyCtxProgram){._void = 0});
@@ -586,8 +588,15 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
 
         exit_semantic_scope();
         CMM_SEM_TYPE ty = cmm_ty_make_struct(name, inner, size);
-        push_defination(name, ty);
-        node->context.data.type = ty;
+
+        /// struct 会被提升到顶层
+        StringList* current_scope = semantic_scope;
+        semantic_scope            = root_semantic_scope;
+        int ok                    = push_defination(name, ty);
+        semantic_scope            = current_scope;
+        node->context.data.type   = ty;
+
+        if (!ok) { REPORT_AND_RETURN(CMM_SE_DUPLICATE_STRUCT); }
     } else {
         REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     }
