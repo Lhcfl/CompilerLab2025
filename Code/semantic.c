@@ -13,10 +13,13 @@
         if ((x) != CMM_SE_OK) return x; \
     }
 
-#define REPORT_AND_RETURN(e)                  \
-    {                                         \
-        record_error(node->location.line, e); \
-        return e;                             \
+#define REPORT_AND_RETURN(e)                                       \
+    {                                                              \
+        if (e == CMM_SE_BAD_AST_TREE) {                            \
+            printf("bad ast tree occurred in %s\n", __FUNCTION__); \
+        }                                                          \
+        record_error(node->location.line, e);                      \
+        return e;                                                  \
     }
 
 typedef struct SemanticContext {
@@ -28,10 +31,8 @@ typedef struct SemanticContext {
 typedef struct StringList {
     char*              name;
     struct StringList* back;
-    union {
-        struct StringList* data;
-        SemanticContext*   ctx;
-    };
+    struct StringList* data;
+    SemanticContext*   ctx;
 } StringList;
 
 enum VAR_WHERE {
@@ -159,9 +160,10 @@ const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type) {
 }
 
 void free_semantic_ctx(void* data) {
-    if (data == NULL) return;
-    const SemanticContext* ctx = data;
-    free(ctx->name);
+    // if (data == NULL) return;
+    // const SemanticContext* ctx = data;
+    // free(ctx->name);
+    (void)data;
 }
 
 int semantic_ctx_compare(const void* a, const void* b, void* _udata) {
@@ -310,7 +312,7 @@ int cmm_semantic_analyze(CMM_AST_NODE* node) {
     analyze_program(node, (struct AnalyCtxProgram){});
 
     // clean
-    hashmap_free(semantic_context);
+    // hashmap_free(semantic_context);
     exit_semantic_scope();
 
     return semantic_errors_count;
@@ -373,11 +375,15 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
         analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
 
     if (spec_ok != CMM_SE_OK) {
-        specifier->context.kind           = CMM_AST_KIND_TYPE;
-        specifier->context.data.type.kind = CMM_ERROR_TYPE;
+        specifier->context.kind      = CMM_AST_KIND_TYPE;
+        specifier->context.data.type = cmm_ty_make_error();
     }
 
     CMM_SEM_TYPE spec_ty = specifier->context.data.type;
+
+#ifdef CMM_DEBUG_FLAGTRACE
+    printf("type is %s\n", spec_ty.name);
+#endif
 
     if (decl->token == CMM_TK_ExtDecList) {
         /// 变量定义
@@ -450,7 +456,7 @@ enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node, struct AnalyCtxSpecifier
     node->context.kind  = CMM_AST_KIND_TYPE;
 
     if (inner->token == CMM_TK_TYPE) {
-        node->context.data.type = cmm_ty_make_primitive(node->data.val_type);
+        node->context.data.type = cmm_ty_make_primitive(inner->data.val_type);
         return CMM_SE_OK;
     } else if (inner->token == CMM_TK_StructSpecifier) {
         enum CMM_SEMANTIC res =

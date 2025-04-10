@@ -3,11 +3,11 @@
 
 # 编译器设定和编译选项
 # CC = gcc
-CC = gcc -DCMM_DEBUG_FLAGTRACE
+CC = gcc -DCMM_DEBUG_FLAGTRACE -O0 -DDEBUG -ggdb -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -lrt -fno-sanitize-recover -fstack-protector -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
 NODE = node
 FLEX = flex
 BISON = bison
-CFLAGS = -std=c99 -Wall -Wextra
+CFLAGS = -std=c99 -Wall -Wextra -Wpedantic
 
 # 编译目标：src目录下的所有.c文件
 CFILES = $(shell find Code/ -name "*.c")
