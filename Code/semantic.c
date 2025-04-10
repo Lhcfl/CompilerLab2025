@@ -805,13 +805,93 @@ enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec args) {
 //     | INT
 //     | FLOAT
 /// TODO
-enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp _) {
+enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_Exp) { return CMM_SE_BAD_AST_TREE; }
 
-    // TODO
+    node->context.kind = CMM_AST_KIND_TYPE;
 
-    return CMM_SE_BAD_AST_TREE;
+    CMM_AST_NODE* a = node->nodes + 0;
+
+    if (a->token == CMM_TK_Exp) {
+        CMM_AST_NODE* op     = node->nodes + 1;
+        CMM_AST_NODE* b      = node->nodes + 2;
+        CMM_SEM_TYPE  type_a = a->context.data.type;
+
+        analyze_exp(a, args);
+
+        if (op->token == CMM_TK_DOT) {
+            if (type_a.kind != CMM_PROD_TYPE) {
+                REPORT_AND_RETURN(CMM_SE_BAD_STRUCT_ACCESS);
+            }
+            CMM_SEM_TYPE* ty = cmm_ty_field_of_struct(type_a, b->data.val_ident);
+            if (ty == NULL) { REPORT_AND_RETURN(CMM_SE_UNDEFINED_STRUCT_DOMAIN); }
+            node->context.data.type = *ty;
+            return CMM_SE_OK;
+        }
+
+        analyze_exp(b, args);
+        CMM_SEM_TYPE type_b = b->context.data.type;
+
+        switch (op->token) {
+            case CMM_TK_AND:
+            case CMM_TK_OR:
+            case CMM_TK_RELOP:
+            case CMM_TK_PLUS:
+            case CMM_TK_MINUS:
+            case CMM_TK_STAR:
+            case CMM_TK_DIV:
+                if (!cmm_ty_fitable(type_a, type_b)) {
+                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+                }
+                node->context.data.type = type_b;
+                break;
+            case CMM_TK_LB:
+                if (type_a.kind != CMM_ARRAY_TYPE) {
+                    REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_ACCESS);
+                }
+                if (type_b.kind != CMM_PRIMITIVE_TYPE ||
+                    strcmp(type_b.name, "int") != 0) {
+                    REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_INDEX);
+                }
+                node->context.data.type = *type_a.inner;
+                break;
+            default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
+        }
+    } else if (a->token == CMM_TK_ID) {
+        CMM_AST_NODE* b = node->nodes + 2;
+        // TODO function call
+    } else if (a->token == CMM_TK_MINUS) {
+        CMM_AST_NODE* b = node->nodes + 1;
+        analyze_exp(b, args);
+        CMM_SEM_TYPE type_b     = b->context.data.type;
+        node->context.data.type = type_b;
+    } else if (a->token == CMM_TK_NOT) {
+        CMM_AST_NODE* b = node->nodes + 1;
+        analyze_exp(b, args);
+        CMM_SEM_TYPE type_b     = b->context.data.type;
+        node->context.data.type = type_b;
+    } else if (a->token == CMM_TK_LP) {
+        CMM_AST_NODE* b = node->nodes + 1;
+        analyze_exp(b, args);
+        CMM_SEM_TYPE type_b     = b->context.data.type;
+        node->context.data.type = type_b;
+    } else if (a->token == CMM_TK_ID) {
+        const SemanticContext* a_def = find_defination(a->data.val_ident);
+        if (a_def == NULL) {
+            node->context.data.type = cmm_ty_make_error();
+        } else {
+            node->context.data.type = a_def->ty;
+        }
+    } else if (a->token == CMM_TK_INT) {
+        node->context.data.type = cmm_ty_make_primitive("int");
+    } else if (a->token == CMM_TK_FLOAT) {
+        node->context.data.type = cmm_ty_make_primitive("float");
+    } else {
+        return CMM_SE_BAD_AST_TREE;
+    }
+
+    return CMM_SE_OK;
 }
 
 

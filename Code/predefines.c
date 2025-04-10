@@ -237,10 +237,13 @@ CMM_AST_NODE cmm_empty_tree(enum CMM_SYNTAX_TOKEN name) {
 }
 
 /// @returns inner[size]
+// 同C语言一样，只要数组的基类型和维
+// 数相同我们即认为类型是匹配的，例如int a[10][2]和int b[5][3]即属于同一类型；
+// 所以只需要记住维数
 char* cmm_ty_make_array_typename(CMM_SEM_TYPE ty) {
-    char* buffer = malloc(sizeof(char) * (strlen(ty.inner->name) + 20));
-    sprintf(buffer, "%s[%d]", ty.inner->name, ty.size);
-    return buffer;
+    // char* buffer = malloc(sizeof(char) * (strlen(ty.inner->name) + 20));
+    // sprintf(buffer, "%s[%d]", ty.inner->name, ty.size);
+    return cmm_concat_string(2, ty.inner->name, "[]");
 }
 
 /// @returns arg -> arg -> arg -> ... -> ret
@@ -311,4 +314,12 @@ int cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2) {
     if (t2.kind == CMM_ERROR_TYPE) { return 1; }
     /// 否则直接匹配类型名
     return strcmp(t1.name, t2.name) == 0;
+}
+
+/// @returns typeof(prod.field)
+CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field) {
+    for (int i = 0; i < prod.size; i++) {
+        if (strcmp(prod.inner[i].bind, field) == 0) { return &(prod.inner[i]); }
+    }
+    return NULL;
 }
