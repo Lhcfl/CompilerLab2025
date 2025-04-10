@@ -27,7 +27,9 @@ void cmm_report_error(char type, char* msg) {
     printf("Error type %c at Line %d: %s\n", type, yylineno, msg);
 }
 
+/// NULL SAFE
 char* cmm_clone_string(const char* str) {
+    if (str == NULL) return NULL;
     size_t len   = strlen(str);
     char*  clone = (char*)malloc((len + 1) * sizeof(char));
     if (clone == NULL) {
@@ -231,5 +233,60 @@ CMM_AST_NODE cmm_empty_tree(enum CMM_SYNTAX_TOKEN name) {
     ret.location.end_line   = -1;
     ret.location.column     = 0x7fffffff;
     ret.location.end_column = -1;
+    return ret;
+}
+
+/// @returns inner[size]
+char* cmm_ty_make_array_typename(CMM_SEM_TYPE ty) {
+    char* buffer = malloc(sizeof(char) * (strlen(ty.inner->name) + 20));
+    sprintf(buffer, "%s[%d]", ty.inner->name, ty.size);
+    return buffer;
+}
+
+/// @returns arg -> arg -> arg -> ... -> ret
+char* cmm_ty_make_fn_typename(CMM_SEM_TYPE ty) {
+    size_t len;
+    for (size_t i = 0; i < ty.size; i++) {
+        len += strlen(ty.inner[i].name);
+        len += 4;   // 4 for " -> "
+    }
+    char* ret    = malloc(sizeof(char) * (len + 3));
+    int   offset = 0;
+    for (size_t i = 0; i < ty.size; i++) {
+        strcpy(ret + offset, ty.inner[i].name);
+        offset += strlen(ty.inner[i].name);
+        strcpy(ret + offset, " -> ");
+        offset += 4;
+    }
+    return ret;
+}
+
+CMM_SEM_TYPE make_type_primitive(char* name) {
+    CMM_SEM_TYPE ret;
+    ret.kind  = CMM_PRIMITIVE_TYPE;
+    ret.name  = name;
+    ret.bind  = NULL;
+    ret.inner = NULL;
+    ret.size  = 0;
+    return ret;
+}
+
+CMM_SEM_TYPE make_type_array(CMM_SEM_TYPE* inner, int size) {
+    CMM_SEM_TYPE ret;
+    ret.kind  = CMM_ARRAY_TYPE;
+    ret.size  = size;
+    ret.inner = inner;
+    ret.bind  = NULL;
+    ret.name  = cmm_ty_make_array_typename(ret);
+    return ret;
+}
+
+CMM_SEM_TYPE cmm_ty_make_error() {
+    CMM_SEM_TYPE ret;
+    ret.kind  = CMM_ERROR_TYPE;
+    ret.size  = 0;
+    ret.inner = NULL;
+    ret.bind  = NULL;
+    ret.name  = "(error)";
     return ret;
 }

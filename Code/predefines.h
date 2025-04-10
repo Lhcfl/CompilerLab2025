@@ -47,7 +47,9 @@ enum CMM_SEM_AST_KIND {
 };
 
 enum CMM_SEM_TYPE_KIND {
-    /// 原语类型，在这里是 int, float, error
+    /// 特殊的错误类型
+    CMM_ERROR_TYPE,
+    /// 原语类型，在这里是 int, float
     CMM_PRIMITIVE_TYPE,
     /// 积类型，或者说结构体类型
     CMM_PROD_TYPE,
@@ -73,16 +75,14 @@ typedef struct CMM_SEM_TYPE {
     char*                  name;
     /// 类型的绑定名。仅限结构体可用。
     char*                  bind;
-
+    /// 某种 Size，依Kind决定意义
+    int                    size;
     /// 类型的“内部”。
     /// 对于原语，我们期望它是 NULL
-    /// 对于结构体，我们期望它是 List<CMM_SEM_TYPE>
+    /// 对于结构体，我们期望它是 Array<CMM_SEM_TYPE>
     /// 对于数组，我们期望它是一个 CMM_SEM_TYPE
     /// 对于函数，我们期望它是 [Return Type, ...Args Type]
-    struct CMM_SEM_TYPE* inner;
-
-    /// 临接类型。用做链表。
-    struct CMM_SEM_TYPE* next;
+    struct CMM_SEM_TYPE*   inner;
 } CMM_SEM_TYPE;
 
 /// 语义分析的 Context
@@ -126,4 +126,9 @@ void         cmm_send_yylval_loc(int, int);
 int          cmm_parse_int(char*);
 CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...);
 CMM_AST_NODE cmm_empty_tree(enum CMM_SYNTAX_TOKEN name);
+char*        cmm_ty_make_array_typename(CMM_SEM_TYPE ty);
+char*        cmm_ty_make_fn_typename(CMM_SEM_TYPE ty);
+CMM_SEM_TYPE cmm_ty_make_primitive(char* name);
+CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size);
+CMM_SEM_TYPE cmm_ty_make_error();
 #endif

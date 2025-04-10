@@ -14,25 +14,35 @@
     }
 
 typedef struct SemanticContext {
-    char* name;
-    void* data;
+    char*        name;
+    CMM_SEM_TYPE ty;
 } SemanticContext;
 
 typedef struct StringList {
     char*              name;
-    /// 对于作用域：这是作用域内的definations和declares
-    struct StringList* data;
     struct StringList* back;
+    union {
+        struct StringList* data;
+        SemanticContext*   ctx;
+    };
 } StringList;
 
 struct AnalyCtxProgram {};
 struct AnalyCtxExtDefList {};
 struct AnalyCtxExtDef {};
 struct AnalyCtxSpecifier {};
-struct AnalyCtxExtDecList {};
+struct AnalyCtxExtDecList {
+    CMM_SEM_TYPE ty;
+};
 struct AnalyCtxFunDec {};
 struct AnalyCtxCompSt {};
-struct AnalyCtxVarDec {};
+struct AnalyCtxVarDec {
+    enum {
+        INSIDE_A_BLOCK,
+        INSIDE_A_STRUCT,
+    } where;
+    CMM_SEM_TYPE ty;
+};
 struct AnalyCtxStructSpecifier {};
 struct AnalyCtxOptTag {};
 struct AnalyCtxDefList {};
@@ -89,7 +99,6 @@ void free_semantic_ctx(void* data) {
     if (data == NULL) return;
     const SemanticContext* ctx = data;
     free(ctx->name);
-    free(ctx->data);
 }
 
 int semantic_ctx_compare(const void* a, const void* b, void* udata) {
@@ -119,7 +128,6 @@ StringList* free_string_list_node(StringList* node) {
     if (node == NULL) { return NULL; }
     StringList* ret = node->back;
     free(node->name);
-    free(node->data);
     free(node);
     return ret;
 }
@@ -136,22 +144,36 @@ void exit_semantic_scope() {
 
         ptr = free_string_list_node(ptr);
     }
-    semantic_scope->data = NULL;
-
     semantic_scope = free_string_list_node(semantic_scope);
 }
 
 /// 在当前作用域下产生一个新的定义
-void push_defination(const char* name) {
+/// @returns 1 成功
+/// @returns 0 失败
+int push_defination(const char* name, CMM_SEM_TYPE ty) {
+    char* varname = cmm_concat_string(3, semantic_scope->name, ":def:", name);
+
+    // 检查是否存在这个def
+    if (hashmap_get(semantic_context, &(SemanticContext){.name = varname}) != NULL) {
+        free(varname);
+        return 0;
+    }
+
+    SemanticContext* ctx = (SemanticContext*)malloc(sizeof(SemanticContext));
+    *ctx                 = (SemanticContext){.name = varname, .ty = ty};
+    hashmap_set(semantic_context, ctx);
+
     StringList* def      = (StringList*)malloc(sizeof(StringList));
-    def->name            = cmm_concat_string(3, semantic_scope->name, ":def:", name);
+    def->name            = varname;
     def->back            = semantic_scope->data;
-    def->data            = NULL;
+    def->ctx             = ctx;
     semantic_scope->data = def;
+
+    return 1;
 }
 
 /// 在当前作用域下产生一个新的声明
-void push_declaration(const char* name) {
+void push_declaration(const char* name, CMM_SEM_TYPE ty) {
     StringList* def      = (StringList*)malloc(sizeof(StringList));
     def->name            = cmm_concat_string(3, semantic_scope->name, ":dec:", name);
     def->back            = semantic_scope->data;
@@ -167,15 +189,6 @@ void record_error(int lineno, enum CMM_SEMANTIC error) {
     semantic_errors_count++;
 }
 
-CMM_SEM_TYPE make_type_primitive(char* name) {
-    CMM_SEM_TYPE ret;
-    ret.kind  = CMM_PRIMITIVE_TYPE;
-    ret.name  = name;
-    ret.bind  = NULL;
-    ret.inner = NULL;
-    ret.next  = NULL;
-    return ret;
-}
 #pragma endregion
 
 #pragma region Functions
@@ -231,6 +244,7 @@ enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE* node, struct AnalyCtxExtDef
 /// | Specifier SEMI
 /// | Specifier FunDec CompSt
 /// ;
+/// 解析扩展的defination
 enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_ExtDef) { return CMM_SE_BAD_AST_TREE; }
@@ -240,11 +254,20 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
 
     /// 无论这里有没有出错，我们让它继续往下走
     /// 错误的类型会被置为 error 这个特殊的原型类
-    analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+    enum CMM_SEMANTIC spec_ok =
+        analyze_specifier(specifier, (struct AnalyCtxSpecifier){});
+
+    if (spec_ok != CMM_SE_OK) {
+        specifier->context.kind           = CMM_AST_KIND_TYPE;
+        specifier->context.data.type.kind = CMM_ERROR_TYPE;
+    }
 
     if (decl->kind == CMM_TK_ExtDecList) {
+        /// 变量定义
         // TODO
-        analyze_ext_dec_list(decl, (struct AnalyCtxExtDecList){});
+        analyze_ext_dec_list(
+            decl, (struct AnalyCtxExtDecList){.ty = specifier->context.data.type});
+
     } else if (decl->kind == CMM_TK_FunDec) {
         // TODO
         analyze_fun_dec(decl, (struct AnalyCtxFunDec){});
@@ -258,16 +281,20 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
 }
 
 /// ExtDecList: VarDec | VarDec COMMA ExtDecList
-enum CMM_SEMANTIC analyze_ext_dec_list(CMM_AST_NODE* node, struct AnalyCtxExtDecList _) {
+enum CMM_SEMANTIC analyze_ext_dec_list(CMM_AST_NODE*             node,
+                                       struct AnalyCtxExtDecList args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_ExtDecList) { return CMM_SE_BAD_AST_TREE; }
 
-    enum CMM_SEMANTIC vardec =
-        analyze_var_dec(node->nodes + 0, (struct AnalyCtxVarDec){});
+    enum CMM_SEMANTIC vardec = analyze_var_dec(node->nodes + 0,
+                                               (struct AnalyCtxVarDec){
+                                                   .ty    = args.ty,
+                                                   .where = INSIDE_A_BLOCK,
+                                               });
     if (node->len == 1) {
         return CMM_SE_OK;
     } else if (node->len == 3) {
-        return analyze_ext_dec_list(node->nodes + 2, (struct AnalyCtxExtDecList){});
+        return analyze_ext_dec_list(node->nodes + 2, args);
     }
 
     return CMM_SE_BAD_AST_TREE;
@@ -285,7 +312,7 @@ enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node, struct AnalyCtxSpecifier
     node->context.kind  = CMM_AST_KIND_TYPE;
 
     if (inner->kind == CMM_TK_TYPE) {
-        node->context.data.type = make_type_primitive(node->data.val_type);
+        node->context.data.type = cmm_ty_make_primitive(node->data.val_type);
         return CMM_SE_OK;
     } else if (inner->kind == CMM_TK_StructSpecifier) {
         enum CMM_SEMANTIC res =
@@ -293,7 +320,7 @@ enum CMM_SEMANTIC analyze_specifier(CMM_AST_NODE* node, struct AnalyCtxSpecifier
         if (res == CMM_SE_OK) {
             node->context.data.type = inner->context.data.type;
         } else {
-            node->context.data.type = make_type_primitive("error");
+            node->context.data.type = cmm_ty_make_error();
         }
     }
 
@@ -323,10 +350,10 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
         // 如果 struct 有名字
         if (opttag->context.kind == CMM_AST_KIND_IDENT) {
             const char* name = opttag->context.data.ident;
-            push_defination(name);
         }
 
         // TODO
+        // 我们在 deflist 中 push 这个 defination
         analyze_def_list(deflist, (struct AnalyCtxDefList){});
     }
 
@@ -365,7 +392,7 @@ enum CMM_SEMANTIC analyze_tag(CMM_AST_NODE* node, struct AnalyCtxTag _) {
 
 /// VarDec: ID | VarDec LB INT RB
 /// TODO
-enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec _) {
+enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_VarDec) { return CMM_SE_BAD_AST_TREE; }
 
@@ -373,10 +400,32 @@ enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec _) {
         // ID
         node->context.kind       = CMM_AST_KIND_IDENT;
         node->context.data.ident = node->nodes->data.val_ident;
-        return CMM_SE_OK;
+        /// 注册这个变量
+
+        int res = push_defination(node->nodes->data.val_ident, args.ty);
+        if (res == 0) {
+            node->context.data.type = args.ty;
+        } else {
+            switch (args.where) {
+                case INSIDE_A_BLOCK:
+                    record_error(node->location.line,
+                                 CMM_SE_DUPLICATE_VARIABLE_DEFINATION);
+                    break;
+                case INSIDE_A_STRUCT:
+                    record_error(node->location.line, CMM_SE_BAD_STRUCT_DOMAIN);
+                    break;
+            }
+            node->context.data.type = cmm_ty_make_error();
+        }
+
     } else if (node->len == 4) {
         // VarDec LB INT RB
-        ANALYZE_EXPECT_OK(analyze_var_dec(node->nodes + 0, (struct AnalyCtxVarDec){}));
+        int           array_size = node->nodes[2].data.val_int;
+        CMM_SEM_TYPE* ty         = malloc(sizeof(CMM_SEM_TYPE));
+        *ty                      = args.ty;
+        ANALYZE_EXPECT_OK(analyze_var_dec(
+            node->nodes + 0,
+            (struct AnalyCtxVarDec){.ty = cmm_ty_make_array(ty, array_size)}));
         // TODO
     }
 
@@ -398,6 +447,8 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec _) {
     } else {
         return CMM_SE_BAD_AST_TREE;
     }
+
+    return CMM_SE_OK;
 }
 
 /// VarList: ParamDec COMMA VarList | ParamDec
