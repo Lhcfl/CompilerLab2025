@@ -300,3 +300,15 @@ CMM_SEM_TYPE cmm_ty_make_error() {
     ret.name  = "(error)";
     return ret;
 }
+
+/// @returns 0 如果不同
+/// @returns 1 如果相同
+int cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2) { return strcmp(t1.name, t2.name) == 0; }
+
+int cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2) {
+    /// 我们认为错误类型能匹配任意类型
+    if (t1.kind == CMM_ERROR_TYPE) { return 1; }
+    if (t2.kind == CMM_ERROR_TYPE) { return 1; }
+    /// 否则直接匹配类型名
+    return strcmp(t1.name, t2.name) == 0;
+}

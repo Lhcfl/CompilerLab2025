@@ -132,4 +132,6 @@ CMM_SEM_TYPE cmm_ty_make_primitive(char* name);
 CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size);
 CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size);
 CMM_SEM_TYPE cmm_ty_make_error();
+int          cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
+int          cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
 #endif
