@@ -119,7 +119,7 @@ enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* node, struct AnalyCtxArgs args);
 
 #pragma region Global States
 /// 错误列表
-CMM_SEMANTIC_ERROR semantic_errors[256];
+CMM_SEMANTIC_ERROR semantic_errors[65535];
 size_t             semantic_errors_count = 0;
 /// 一个哈希表，用来存放semantic的context
 struct hashmap*    semantic_context      = NULL;
@@ -272,7 +272,7 @@ const SemanticContext* find_defination(const char* name) {
 
 void record_error(int lineno, enum CMM_SEMANTIC error) {
     // too many errors
-    if (semantic_errors_count >= 256) { return; }
+    if (semantic_errors_count >= 65535) { return; }
     semantic_errors[semantic_errors_count].line = lineno;
     semantic_errors[semantic_errors_count].type = error;
     semantic_errors_count++;
@@ -281,6 +281,9 @@ void record_error(int lineno, enum CMM_SEMANTIC error) {
 #pragma endregion
 
 #pragma region Functions
+
+CMM_SEMANTIC_ERROR* cmm_get_semantic_errors() { return semantic_errors; }
+
 int cmm_semantic_analyze(CMM_AST_NODE* node) {
     // prepare
     semantic_context = hashmap_new(sizeof(SemanticContext),

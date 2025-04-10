@@ -1,5 +1,6 @@
 #include "predefines.h"
 #include "globals.h"
+#include "semantic.h"
 #include "syndef.h"
 #include "syntax.tab.h"
 #include <stdio.h>
@@ -61,7 +62,19 @@ int main(int argc, char** argv) {
     printf("\n\n======================\n\n");
 #endif
 
-    cmm_print_node(&cmm_parsed_root, 0);
 #ifdef BYYL_IS_LAB1
+    cmm_print_node(&cmm_parsed_root, 0);
 #endif
+
+    int sem_error_cnt = cmm_semantic_analyze(&cmm_parsed_root);
+
+    if (sem_error_cnt > 0) {
+        CMM_SEMANTIC_ERROR* errors = cmm_get_semantic_errors();
+        for (int i = 1; i <= sem_error_cnt; i++) {
+            printf("Error type %d at Line %d: %s\n",
+                   errors[i].type,
+                   errors[i].line,
+                   cmm_semantic_error_to_string(errors[i].type));
+        }
+    }
 }
