@@ -261,7 +261,7 @@ char* cmm_ty_make_fn_typename(CMM_SEM_TYPE ty) {
     return ret;
 }
 
-CMM_SEM_TYPE make_type_primitive(char* name) {
+CMM_SEM_TYPE cmm_ty_make_primitive(char* name) {
     CMM_SEM_TYPE ret;
     ret.kind  = CMM_PRIMITIVE_TYPE;
     ret.name  = name;
@@ -271,7 +271,7 @@ CMM_SEM_TYPE make_type_primitive(char* name) {
     return ret;
 }
 
-CMM_SEM_TYPE make_type_array(CMM_SEM_TYPE* inner, int size) {
+CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size) {
     CMM_SEM_TYPE ret;
     ret.kind  = CMM_ARRAY_TYPE;
     ret.size  = size;
