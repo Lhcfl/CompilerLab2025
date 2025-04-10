@@ -59,6 +59,11 @@ enum CMM_SEM_TYPE_KIND {
     CMM_FUNCTION_TYPE
 };
 
+enum CMM_VALUE_KIND {
+    LVALUE,
+    RVALUE,
+};
+
 typedef struct CMM_AST_LOCATION {
     int   line;
     int   column;
@@ -88,7 +93,8 @@ typedef struct CMM_SEM_TYPE {
 /// 语义分析的 Context
 typedef struct CMM_SEM_CONTEXT {
     enum CMM_SEM_AST_KIND kind;
-    union {
+    enum CMM_VALUE_KIND   value_kind;
+    struct {
         CMM_SEM_TYPE type;
         char*        ident;
     } data;

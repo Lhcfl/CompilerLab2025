@@ -56,8 +56,10 @@ typedef struct CMM_SEMANTIC_ERROR {
     /// 错误类型
     enum CMM_SEMANTIC type;
     /// 错误所在行号
-    int line;
+    int               line;
 } CMM_SEMANTIC_ERROR;
+
+const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type);
 
 /// 出错时调用，获得错误数组
 CMM_SEMANTIC_ERROR* cmm_get_semantic_errors();

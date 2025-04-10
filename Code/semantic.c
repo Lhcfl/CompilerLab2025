@@ -49,7 +49,9 @@ struct AnalyCtxExtDecList {
 struct AnalyCtxFunDec {
     CMM_SEM_TYPE return_ty;
 };
-struct AnalyCtxCompSt {};
+struct AnalyCtxCompSt {
+    CMM_SEM_TYPE current_fn_ty;
+};
 struct AnalyCtxVarDec {
     enum VAR_WHERE where;
     CMM_SEM_TYPE   ty;
@@ -67,8 +69,12 @@ struct AnalyCtxVarList {
 struct AnalyCtxParamDec {
     CMM_SEM_TYPE* ty;
 };
-struct AnalyCtxStmtList {};
-struct AnalyCtxStmt {};
+struct AnalyCtxStmtList {
+    CMM_SEM_TYPE current_fn_ty;
+};
+struct AnalyCtxStmt {
+    CMM_SEM_TYPE current_fn_ty;
+};
 struct AnalyCtxExp {};
 struct AnalyCtxDef {
     enum VAR_WHERE where;
@@ -123,6 +129,33 @@ StringList*        semantic_scope        = NULL;
 
 
 #pragma region Helper Functions
+
+const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type) {
+    switch (type) {
+        case CMM_SE_UNDEFINED_VARIABLE: return "Undefined variable";
+        case CMM_SE_UNDEFINED_FUNCTION: return "Undefined function";
+        case CMM_SE_DUPLICATE_VARIABLE_DEFINATION: return "Duplicate variable definition";
+        case CMM_SE_DUPLICATE_FUNCTION_DEFINATION: return "Duplicate function definition";
+        case CMM_SE_ASSIGN_TYPE_ERROR: return "Assignment type error";
+        case CMM_SE_ASSIGN_TO_RVALUE: return "Assignment to rvalue";
+        case CMM_SE_OPERAND_TYPE_ERROR: return "Operand type error";
+        case CMM_SE_RETURN_TYPE_ERROR: return "Return type error";
+        case CMM_SE_ARGS_NOT_MATCH: return "Arguments not match";
+        case CMM_SE_BAD_ARRAY_ACCESS: return "Bad array access";
+        case CMM_SE_BAD_FUNCTION_CALL: return "Bad function call";
+        case CMM_SE_BAD_ARRAY_INDEX: return "Bad array index";
+        case CMM_SE_BAD_STRUCT_ACCESS: return "Bad struct access";
+        case CMM_SE_UNDEFINED_STRUCT_DOMAIN: return "Undefined struct domain";
+        case CMM_SE_BAD_STRUCT_DOMAIN: return "Bad struct domain";
+        case CMM_SE_DUPLICATE_STRUCT: return "Duplicate struct definition";
+        case CMM_SE_UNDEFINED_STRUCT: return "Undefined struct";
+        case CMM_SE_FUNCTION_DECLARED_NOT_DEFINED:
+            return "Function declared but not defined";
+        case CMM_SE_CONFLICT_FUNCTION_DECLARAtiON: return "Function declaration conflict";
+        default: return "Unknown semantic error";
+    }
+}
+
 void free_semantic_ctx(void* data) {
     if (data == NULL) return;
     const SemanticContext* ctx = data;
@@ -261,14 +294,13 @@ int cmm_semantic_analyze(CMM_AST_NODE* node) {
     enter_semantic_scope("root");
 
     /// analyze
-    enum CMM_SEMANTIC x = analyze_program(node, (struct AnalyCtxProgram){});
+    analyze_program(node, (struct AnalyCtxProgram){});
 
     // clean
     hashmap_free(semantic_context);
     exit_semantic_scope();
 
-    if (x != CMM_SE_OK) { return 1; }
-    return 0;
+    return semantic_errors_count;
 }
 
 /// Program: ExtDefList;
@@ -333,11 +365,14 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
         return analyze_ext_dec_list(decl, (struct AnalyCtxExtDecList){.ty = spec_ty});
     } else if (decl->kind == CMM_TK_FunDec) {
         /// 还需要分析函数体，所以不关心这里的错误
-        enter_semantic_scope("fn");
+        /// decl->nodes 是一个 &ID，否则AST错误
+        enter_semantic_scope(decl->nodes->data.val_ident);
         analyze_fun_dec(decl, (struct AnalyCtxFunDec){.return_ty = spec_ty});
         if (node->len == 3) {
             // FunDec CompSt
-            analyze_comp_st(node->nodes + 2, (struct AnalyCtxCompSt){});
+            analyze_comp_st(
+                node->nodes + 2,
+                (struct AnalyCtxCompSt){.current_fn_ty = decl->context.data.type});
         } else if (node->len == 2) {
             // FunDec SEMI
             // just a declare
@@ -544,9 +579,9 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
     // TODO 判断dec有误？
     push_declaration(id_name, fnty);
 
-    node->context.kind      = CMM_AST_KIND_DECLARE;
-    node->context.data.type = fnty;
-
+    node->context.kind       = CMM_AST_KIND_DECLARE;
+    node->context.data.type  = fnty;
+    node->context.data.ident = id_name;
     return CMM_SE_OK;
 }
 
@@ -627,7 +662,7 @@ enum CMM_SEMANTIC analyze_param_dec(CMM_AST_NODE* node, struct AnalyCtxParamDec 
 
 /// CompSt: LC DefList StmtList RC
 /// TODO
-enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt _) {
+enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_CompSt) { return CMM_SE_BAD_AST_TREE; }
 
@@ -641,7 +676,8 @@ enum CMM_SEMANTIC analyze_comp_st(CMM_AST_NODE* node, struct AnalyCtxCompSt _) {
 
     // TODO
     analyze_def_list(deflist, (struct AnalyCtxDefList){});
-    analyze_stmt_list(stmtlist, (struct AnalyCtxStmtList){});
+    analyze_stmt_list(stmtlist,
+                      (struct AnalyCtxStmtList){.current_fn_ty = args.current_fn_ty});
 
     exit_semantic_scope();
 
@@ -661,7 +697,8 @@ enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* root, struct AnalyCtxStmtList 
         } else if (node->len == 2) {
             // TODO
             // Stmt StmtList
-            analyze_stmt(node->nodes + 0, (struct AnalyCtxStmt){});
+            analyze_stmt(node->nodes + 0,
+                         (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
 
             node = node->nodes + 1;
         } else {
@@ -677,12 +714,51 @@ enum CMM_SEMANTIC analyze_stmt_list(CMM_AST_NODE* root, struct AnalyCtxStmtList 
 //     | IF LP Exp RP Stmt ELSE Stmt
 //     | WHILE LP Exp RP Stmt
 /// TODO
-enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt _) {
+enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_Stmt) { return CMM_SE_BAD_AST_TREE; }
 
-    // TODO
-    return CMM_SE_BAD_AST_TREE;
+    CMM_AST_NODE* first = node->nodes + 0;
+    switch (first->token) {
+        case CMM_TK_Exp: analyze_exp(first, (struct AnalyCtxExp){}); break;
+        case CMM_TK_CompSt:
+            analyze_comp_st(first,
+                            (struct AnalyCtxCompSt){.current_fn_ty = args.current_fn_ty});
+            break;
+        case CMM_TK_RETURN: {
+            CMM_AST_NODE* exp = node->nodes + 1;
+            analyze_exp(exp, (struct AnalyCtxExp){});
+            if (!cmm_ty_fitable(args.current_fn_ty.inner[args.current_fn_ty.size - 1],
+                                exp->context.data.type)) {
+                REPORT_AND_RETURN(CMM_SE_RETURN_TYPE_ERROR)
+            }
+            break;
+        }
+        case CMM_TK_IF: {
+            CMM_AST_NODE* exp = node->nodes + 2;
+            analyze_exp(exp, (struct AnalyCtxExp){});
+            analyze_stmt(node->nodes + 4,
+                         (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
+            if (node->len == 7) {
+                // IF LP Exp RP Stmt ELSE Stmt
+                analyze_stmt(node->nodes + 6,
+                             (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
+            }
+            break;
+        }
+        case CMM_TK_WHILE: {
+            CMM_AST_NODE* exp = node->nodes + 2;
+            analyze_exp(exp, (struct AnalyCtxExp){});
+            analyze_stmt(node->nodes + 4,
+                         (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
+            break;
+        }
+        default: {
+            return CMM_SE_BAD_AST_TREE;
+            break;
+        }
+    }
+    return CMM_SE_OK;
 }
 
 /// DefList: /* empty */ | Def DefList
@@ -761,7 +837,6 @@ enum CMM_SEMANTIC analyze_dec_list(CMM_AST_NODE* root, struct AnalyCtxDecList ar
 }
 
 /// Dec: VarDec | VarDec ASSIGNOP Exp
-/// TODO
 enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_Dec) { return CMM_SE_BAD_AST_TREE; }
@@ -806,12 +881,13 @@ enum CMM_SEMANTIC analyze_dec(CMM_AST_NODE* node, struct AnalyCtxDec args) {
 //     | ID
 //     | INT
 //     | FLOAT
-/// TODO
 enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
     if (node == NULL) { return CMM_SE_BAD_AST_TREE; }
     if (node->kind != CMM_TK_Exp) { return CMM_SE_BAD_AST_TREE; }
 
-    node->context.kind = CMM_AST_KIND_TYPE;
+    node->context.kind       = CMM_AST_KIND_TYPE;
+    node->context.data.type  = cmm_ty_make_error();
+    node->context.value_kind = RVALUE;
 
     CMM_AST_NODE* a = node->nodes + 0;
 
@@ -828,7 +904,8 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
             }
             CMM_SEM_TYPE* ty = cmm_ty_field_of_struct(type_a, b->data.val_ident);
             if (ty == NULL) { REPORT_AND_RETURN(CMM_SE_UNDEFINED_STRUCT_DOMAIN); }
-            node->context.data.type = *ty;
+            node->context.data.type  = *ty;
+            node->context.value_kind = LVALUE;
             return CMM_SE_OK;
         }
 
@@ -836,6 +913,15 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         CMM_SEM_TYPE type_b = b->context.data.type;
 
         switch (op->token) {
+            case CMM_TK_ASSIGNOP:
+                if (!cmm_ty_fitable(type_a, type_b)) {
+                    REPORT_AND_RETURN(CMM_SE_ASSIGN_TYPE_ERROR);
+                }
+                if (a->context.value_kind == RVALUE) {
+                    REPORT_AND_RETURN(CMM_SE_ASSIGN_TO_RVALUE);
+                }
+                node->context.data.type = type_a;
+                break;
             case CMM_TK_AND:
             case CMM_TK_OR:
             case CMM_TK_RELOP:
@@ -856,17 +942,26 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
                     strcmp(type_b.name, "int") != 0) {
                     REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_INDEX);
                 }
-                node->context.data.type = *type_a.inner;
+                node->context.data.type  = *type_a.inner;
+                node->context.value_kind = LVALUE;
                 break;
             default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
     } else if (a->token == CMM_TK_ID) {
         const SemanticContext* a_def = find_defination(a->data.val_ident);
         if (a_def == NULL) {
-            node->context.data.type = cmm_ty_make_error();
-            return CMM_SE_OK;
+            if (node->len == 1) {
+                REPORT_AND_RETURN(CMM_SE_UNDEFINED_VARIABLE);
+            } else {
+                REPORT_AND_RETURN(CMM_SE_UNDEFINED_FUNCTION);
+            }
         } else {
             node->context.data.type = a_def->ty;
+        }
+
+        if (node->len == 1) {
+            node->context.value_kind = LVALUE;
+            return CMM_SE_OK;
         }
 
         if (a_def->ty.kind != CMM_FUNCTION_TYPE) {
@@ -895,8 +990,9 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         // 括号
         CMM_AST_NODE* b = node->nodes + 1;
         analyze_exp(b, args);
-        CMM_SEM_TYPE type_b     = b->context.data.type;
-        node->context.data.type = type_b;
+        CMM_SEM_TYPE type_b      = b->context.data.type;
+        node->context.data.type  = type_b;
+        node->context.value_kind = b->context.value_kind;
     } else if (a->token == CMM_TK_INT) {
         node->context.data.type = cmm_ty_make_primitive("int");
     } else if (a->token == CMM_TK_FLOAT) {
@@ -911,7 +1007,6 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
 
 // Args: Exp COMMA Args
 //     | Exp
-/// TODO
 enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* root, struct AnalyCtxArgs args) {
     CMM_AST_NODE* node = root;
 
@@ -941,5 +1036,7 @@ enum CMM_SEMANTIC analyze_args(CMM_AST_NODE* root, struct AnalyCtxArgs args) {
 
     root->context.kind      = CMM_AST_KIND_TYPE;
     root->context.data.type = args.calling.inner[return_type_idx];
+    return CMM_SE_OK;
 }
+
 #pragma endregion
