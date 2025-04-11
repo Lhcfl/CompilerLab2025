@@ -1126,6 +1126,7 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         CMM_AST_NODE* b      = node->nodes + 2;
         CMM_SEM_TYPE  type_a = a->context.data.type;
 
+        /// struct.field
         if (op->token == CMM_TK_DOT) {
             node->context.value_kind = LVALUE;
             if (type_a.kind == CMM_ERROR_TYPE) { RETURN_WITH_TRACE(CMM_SE_OK); }
@@ -1177,16 +1178,19 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
                 }
                 node->context.data.type = type_b;
                 break;
+            /// array[idx]
             case CMM_TK_LB:
                 node->context.value_kind = LVALUE;
+                if (type_a.kind == CMM_ERROR_TYPE) { RETURN_WITH_TRACE(CMM_SE_OK); }
                 if (type_a.kind != CMM_ARRAY_TYPE) {
                     REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_ACCESS);
                 }
-                if (type_b.kind != CMM_PRIMITIVE_TYPE ||
-                    strcmp(type_b.name, "int") != 0) {
+                if (type_b.kind == CMM_ERROR_TYPE || (type_b.kind == CMM_PRIMITIVE_TYPE &&
+                                                      strcmp(type_b.name, "int") == 0)) {
+                    node->context.data.type = *type_a.inner;
+                } else {
                     REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_INDEX);
                 }
-                node->context.data.type = *type_a.inner;
                 break;
             default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
