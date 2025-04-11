@@ -1236,6 +1236,17 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         analyze_exp(b, args);
         CMM_SEM_TYPE type_b = b->context.data.type;
 
+#define __SEM_TYCHECK_EXPECT_FIT_AND_PRIMITIVE                                \
+    if (!cmm_ty_fitable(type_a, type_b)) {                                    \
+        REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);                         \
+    }                                                                         \
+    if (type_a.kind != CMM_ERROR_TYPE && type_a.kind != CMM_PRIMITIVE_TYPE) { \
+        REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);                         \
+    }                                                                         \
+    if (type_b.kind != CMM_ERROR_TYPE && type_b.kind != CMM_PRIMITIVE_TYPE) { \
+        REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);                         \
+    }
+
         switch (op->token) {
             case CMM_TK_ASSIGNOP:
                 if (!cmm_ty_fitable(type_a, type_b)) {
@@ -1257,19 +1268,14 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
                 node->context.data.type = type_b;
                 break;
             case CMM_TK_RELOP:
+                __SEM_TYCHECK_EXPECT_FIT_AND_PRIMITIVE
+                node->context.data.type = cmm_ty_make_primitive("int");
+                break;
             case CMM_TK_PLUS:
             case CMM_TK_MINUS:
             case CMM_TK_STAR:
             case CMM_TK_DIV:
-                if (!cmm_ty_fitable(type_a, type_b)) {
-                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
-                }
-                if (type_a.kind != CMM_ERROR_TYPE && type_a.kind != CMM_PRIMITIVE_TYPE) {
-                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
-                }
-                if (type_b.kind != CMM_ERROR_TYPE && type_b.kind != CMM_PRIMITIVE_TYPE) {
-                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
-                }
+                __SEM_TYCHECK_EXPECT_FIT_AND_PRIMITIVE
                 node->context.data.type = type_b;
                 break;
             /// array[idx]
