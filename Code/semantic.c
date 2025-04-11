@@ -1125,11 +1125,8 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         CMM_SEM_TYPE  type_a = a->context.data.type;
 
         if (op->token == CMM_TK_DOT) {
-            if (type_a.kind == CMM_ERROR_TYPE) {
-                node->context.data.type  = cmm_ty_make_error();
-                node->context.value_kind = LVALUE;
-                RETURN_WITH_TRACE(CMM_SE_OK);
-            }
+            node->context.value_kind = LVALUE;
+            if (type_a.kind == CMM_ERROR_TYPE) { RETURN_WITH_TRACE(CMM_SE_OK); }
 #ifdef CMM_DEBUG_FLAGTRACE
             printf("trying get %s.%s (size = %d, {",
                    type_a.name,
