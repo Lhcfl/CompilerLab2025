@@ -26,11 +26,11 @@
 
 #ifdef CMM_DEBUG_FLAGTRACE
 int __sem_trace_spaces = 0;
-#    define FUNCTION_TRACE                                              \
-        {                                                               \
-            __sem_trace_spaces++;                                       \
-            for (int i = 0; i < __sem_trace_spaces; i++) printf(" ");   \
-            printf("  >== %s : %s:%d\n", __func__, __FILE__, __LINE__); \
+#    define FUNCTION_TRACE                                                               \
+        {                                                                                \
+            __sem_trace_spaces++;                                                        \
+            for (int i = 0; i < __sem_trace_spaces; i++) printf(" ");                    \
+            printf("\033[1;34m  >== %s : %s:%d\n\033[0m", __func__, __FILE__, __LINE__); \
         }
 #    define RETURN_WITH_TRACE(x)  \
         {                         \
@@ -80,6 +80,7 @@ struct AnalyCtxExtDecList {
 };
 struct AnalyCtxFunDec {
     CMM_SEM_TYPE return_ty;
+    int          is_def;
 };
 struct AnalyCtxCompSt {
     CMM_SEM_TYPE current_fn_ty;
@@ -202,7 +203,7 @@ const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type) {
         case CMM_SE_UNDEFINED_STRUCT: return "Undefined struct";
         case CMM_SE_FUNCTION_DECLARED_NOT_DEFINED:
             return "Function declared but not defined";
-        case CMM_SE_CONFLICT_FUNCTION_DECLARAtiON: return "Function declaration conflict";
+        case CMM_SE_CONFLICT_FUNCTION_DECLARATION: return "Function declaration conflict";
         default: return "Unknown semantic error";
     }
 }
@@ -243,7 +244,7 @@ StringList* enter_semantic_scope(const char* name) {
     semantic_scope    = scope;
 
 #ifdef CMM_DEBUG_FLAGTRACE
-    printf("entering scope: %s\n", name);
+    printf("\033[1;32mentering scope: %s\033[0m\n", name);
 #endif
 
     return scope;
@@ -261,7 +262,7 @@ StringList* free_string_list_node(StringList* node) {
 /// 退出当前的语义分析作用域
 void exit_semantic_scope() {
 #ifdef CMM_DEBUG_FLAGTRACE
-    printf("quiting scope: %s\n", semantic_scope->name);
+    printf("\033[1;32mquiting scope: %s\033[0m\n", semantic_scope->name);
 #endif
     // 释放当前作用域的所有定义
     StringList* ptr = semantic_scope->data;
@@ -300,14 +301,27 @@ int _push_def_or_dec(const char* name, CMM_SEM_TYPE ty, int is_dec) {
 
     if (existed != NULL) {
 #ifdef CMM_DEBUG_FLAGTRACE
-        printf("[warn] %s is dec/def ed\n", varname);
+        if (is_dec || existed->is_dec)
+            printf("\033[1;33m[register] %s %s : %s\033[0m\n",
+                   is_dec ? "dec" : "def",
+                   varname,
+                   ty.name);
+        else
+            printf("\033[1;43mERROR [register again] %s %s : %s\033[0m\n",
+                   is_dec ? "dec" : "def",
+                   varname,
+                   ty.name);
 #endif
         free(varname);
-        if (is_dec) { return cmm_ty_eq(existed->ty, ty); }
+        if (is_dec || existed->is_dec) { return cmm_ty_eq(existed->ty, ty); }
         return 0;
     }
+
 #ifdef CMM_DEBUG_FLAGTRACE
-    printf("[register] %s : %s\n", varname, ty.name);
+    printf("\033[1;33m[register] %s %s : %s\033[0m\n",
+           is_dec ? "dec" : "def",
+           varname,
+           ty.name);
 #endif
 
     SemanticContext* ctx = (SemanticContext*)malloc(sizeof(SemanticContext));
@@ -478,9 +492,13 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
     } else if (decl->token == CMM_TK_FunDec) {
         /// 还需要分析函数体，所以不关心这里的错误
         /// decl->nodes 是一个 &ID，否则AST错误
-        char* name = decl->nodes->data.val_ident;
-        enter_semantic_scope(name);
-        analyze_fun_dec(decl, (struct AnalyCtxFunDec){.return_ty = spec_ty});
+        char* fn_name = decl->nodes->data.val_ident;
+        enter_semantic_scope(fn_name);
+        analyze_fun_dec(decl,
+                        (struct AnalyCtxFunDec){
+                            .return_ty = spec_ty,
+                            .is_def    = node->len == 3,
+                        });
         if (node->len == 3) {
             // FunDec CompSt
             analyze_comp_st(
@@ -732,19 +750,31 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
         REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
     }
 
+    node->context.kind       = CMM_AST_KIND_DECLARE;
+    node->context.data.type  = fnty;
+    node->context.data.ident = id_name;
+
     // TODO 判断dec有误？
     {
         /// 函数定义在上层作用域
         /// 先修改当前作用域，然后再恢复
         StringList* current_scope = semantic_scope;
         semantic_scope            = semantic_scope->back;
-        push_declaration(id_name, fnty);
+        int ret = (args.is_def ? push_defination : push_declaration)(id_name, fnty);
         semantic_scope = current_scope;
+
+        if (ret == 0) {
+            if (args.is_def) {
+                /// 父作用域定义重复，为了继续分析 comst，我们再
+                /// push一个defination到子作用域
+                push_defination(id_name, fnty);
+                REPORT_AND_RETURN(CMM_SE_DUPLICATE_FUNCTION_DEFINATION);
+            } else {
+                REPORT_AND_RETURN(CMM_SE_CONFLICT_FUNCTION_DECLARATION);
+            }
+        }
     }
 
-    node->context.kind       = CMM_AST_KIND_DECLARE;
-    node->context.data.type  = fnty;
-    node->context.data.ident = id_name;
     RETURN_WITH_TRACE(CMM_SE_OK);
 }
 

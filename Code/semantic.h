@@ -47,7 +47,7 @@ enum CMM_SEMANTIC {
     /// 错误类型18：函数进行了声明，但没有被定义。
     CMM_SE_FUNCTION_DECLARED_NOT_DEFINED = 18,
     /// 错误类型19：函数的多次声明互相冲突（即函数名一致，但返回类型、形参数量或者形参类型不一致），或者声明与定义之间互相冲突。
-    CMM_SE_CONFLICT_FUNCTION_DECLARAtiON = 19,
+    CMM_SE_CONFLICT_FUNCTION_DECLARATION = 19,
 };
 
 int cmm_semantic_analyze(CMM_AST_NODE* node);

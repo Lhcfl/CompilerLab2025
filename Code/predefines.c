@@ -245,6 +245,7 @@ char* cmm_ty_make_fn_typename(CMM_SEM_TYPE ty) {
     for (int i = 0; i < ty.size; i++) {
         strcpy(ret + offset, ty.inner[i].name);
         offset += strlen(ty.inner[i].name);
+        if (i == ty.size - 1) { break; }
         strcpy(ret + offset, " -> ");
         offset += 4;
     }
