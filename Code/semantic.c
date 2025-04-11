@@ -48,7 +48,14 @@ int __sem_trace_spaces = 0;
 typedef struct SemanticContext {
     char*        name;
     CMM_SEM_TYPE ty;
-    int          is_dec;
+    enum {
+        SEM_CTX_DEFINATION,
+        SEM_CTX_DECLARE,
+    } def;
+    enum SemContextKind {
+        SEM_CTX_TYPE,
+        SEM_CTX_VAR,
+    } kind;
 } SemanticContext;
 
 typedef struct StringList {
@@ -139,6 +146,8 @@ struct AnalyCtxDec {
 struct AnalyCtxArgs {
     CMM_SEM_TYPE calling;
 };
+
+const SemanticContext* find_defination(const char* name);
 
 enum CMM_SEMANTIC analyze_program(CMM_AST_NODE* node, struct AnalyCtxProgram args);
 enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE*             node,
@@ -292,8 +301,8 @@ char* _ctx_finder(const char* name, StringList* scope) {
 /// 在当前作用域下产生一个新的定义或声明
 /// @returns 1 成功
 /// @returns 0 失败
-int _push_def_or_dec(const char* name, CMM_SEM_TYPE ty, int is_dec) {
-    char* varname = _ctx_finder(name, semantic_scope);
+int push_context(SemanticContext arg) {
+    char* varname = _ctx_finder(arg.name, semantic_scope);
 
     // 检查是否存在这个def
     const SemanticContext* existed =
@@ -301,54 +310,50 @@ int _push_def_or_dec(const char* name, CMM_SEM_TYPE ty, int is_dec) {
 
     if (existed != NULL) {
 #ifdef CMM_DEBUG_FLAGTRACE
-        if (is_dec || existed->is_dec)
+        if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE)
             printf("\033[1;33m[register] %s %s : %s\033[0m\n",
-                   is_dec ? "dec" : "def",
+                   arg.def == SEM_CTX_DECLARE ? "dec" : "def",
                    varname,
-                   ty.name);
+                   arg.ty.name);
         else
             printf("\033[1;43mERROR [register again] %s %s : %s\033[0m\n",
-                   is_dec ? "dec" : "def",
+                   arg.def == SEM_CTX_DECLARE ? "dec" : "def",
                    varname,
-                   ty.name);
+                   arg.ty.name);
 #endif
         free(varname);
-        if (is_dec || existed->is_dec) { return cmm_ty_eq(existed->ty, ty); }
+        if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE) {
+            return cmm_ty_eq(existed->ty, arg.ty);
+        }
+        return 0;
+    }
+
+    /// 变量的名字不能和类型一样
+    const SemanticContext* existed_rec = find_defination(arg.name);
+    if (existed_rec != NULL && existed_rec->kind == SEM_CTX_TYPE &&
+        arg.kind == SEM_CTX_VAR) {
         return 0;
     }
 
 #ifdef CMM_DEBUG_FLAGTRACE
     printf("\033[1;33m[register] %s %s : %s\033[0m\n",
-           is_dec ? "dec" : "def",
+           arg.def == SEM_CTX_DECLARE ? "dec" : "def",
            varname,
-           ty.name);
+           arg.ty.name);
 #endif
 
-    SemanticContext* ctx = (SemanticContext*)malloc(sizeof(SemanticContext));
-    *ctx                 = (SemanticContext){.name = varname, .ty = ty};
-    hashmap_set(semantic_context, ctx);
+    SemanticContext* allo_ctx = (SemanticContext*)malloc(sizeof(SemanticContext));
+    *allo_ctx                 = arg;
+    allo_ctx->name            = varname;
+    hashmap_set(semantic_context, allo_ctx);
 
     StringList* def      = (StringList*)malloc(sizeof(StringList));
     def->name            = varname;
     def->back            = semantic_scope->data;
-    def->ctx             = ctx;
+    def->ctx             = allo_ctx;
     semantic_scope->data = def;
 
     return 1;
-}
-
-/// 在当前作用域下产生一个新的定义
-/// @returns 1 成功
-/// @returns 0 失败
-int push_defination(const char* name, CMM_SEM_TYPE ty) {
-    return _push_def_or_dec(name, ty, 0);
-}
-
-/// 在当前作用域下产生一个新的声明
-/// @returns 1 成功
-/// @returns 0 失败
-int push_declaration(const char* name, CMM_SEM_TYPE ty) {
-    return _push_def_or_dec(name, ty, 1);
 }
 
 /// 在当前作用域，和它的上n级，获取一个定义
@@ -625,7 +630,12 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
         /// struct 会被提升到顶层
         StringList* current_scope = semantic_scope;
         semantic_scope            = root_semantic_scope;
-        int ok                    = push_defination(name, ty);
+        int ok                    = push_context((SemanticContext){
+                               .def  = SEM_CTX_DEFINATION,
+                               .kind = SEM_CTX_TYPE,
+                               .name = name,
+                               .ty   = ty,
+        });
         semantic_scope            = current_scope;
         node->context.data.type   = ty;
 
@@ -684,7 +694,12 @@ enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec args
         node->context.data.ident = node->nodes->data.val_ident;
         /// 注册这个变量
         args.ty.bind             = node->context.data.ident;
-        int ok                   = push_defination(node->nodes->data.val_ident, args.ty);
+        int ok                   = push_context((SemanticContext){
+                              .def  = SEM_CTX_DEFINATION,
+                              .kind = SEM_CTX_VAR,
+                              .name = node->nodes->data.val_ident,
+                              .ty   = args.ty,
+        });
         if (ok) {
             node->context.data.type = args.ty;
         } else {
@@ -762,14 +777,24 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
         /// 先修改当前作用域，然后再恢复
         StringList* current_scope = semantic_scope;
         semantic_scope            = semantic_scope->back;
-        int ret = (args.is_def ? push_defination : push_declaration)(id_name, fnty);
-        semantic_scope = current_scope;
+        int ret                   = push_context((SemanticContext){
+                              .def  = args.is_def ? SEM_CTX_DEFINATION : SEM_CTX_DECLARE,
+                              .kind = SEM_CTX_VAR,
+                              .name = id_name,
+                              .ty   = fnty,
+        });
+        semantic_scope            = current_scope;
 
         if (ret == 0) {
             if (args.is_def) {
                 /// 父作用域定义重复，为了继续分析 comst，我们再
                 /// push一个defination到子作用域
-                push_defination(id_name, fnty);
+                push_context((SemanticContext){
+                    .def  = SEM_CTX_DEFINATION,
+                    .kind = SEM_CTX_VAR,
+                    .name = id_name,
+                    .ty   = fnty,
+                });
                 REPORT_AND_RETURN(CMM_SE_DUPLICATE_FUNCTION_DEFINATION);
             } else {
                 REPORT_AND_RETURN(CMM_SE_CONFLICT_FUNCTION_DECLARATION);
