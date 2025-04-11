@@ -343,6 +343,7 @@ char* _ctx_finder(const char* name, StringList* scope) {
 /// 在当前作用域下产生一个新的定义或声明
 /// @returns 1 成功
 /// @returns 0 失败
+/// @returns -1 函数不匹配
 int push_context(SemanticContext arg) {
     char* varname = _ctx_finder(arg.name, semantic_scope);
 
@@ -367,7 +368,7 @@ int push_context(SemanticContext arg) {
         if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE) {
             int ret = cmm_ty_eq(existed->ty, arg.ty);
             if (ret == 1 && existed->def == SEM_CTX_DECLARE) { existed->def = arg.def; }
-            return ret;
+            return ret == 0 ? -1 : 1;
         }
         return 0;
     }
@@ -830,6 +831,7 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
         });
         semantic_scope            = current_scope;
 
+        if (ret == -1) { REPORT_AND_RETURN(CMM_SE_CONFLICT_FUNCTION_DECLARATION); }
         if (ret == 0) {
             if (args.is_def) {
                 /// 父作用域定义重复，为了继续分析 comst，我们再
