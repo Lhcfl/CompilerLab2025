@@ -634,7 +634,9 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
         char* name = opttag->context.kind == CMM_AST_KIND_IDENT
                          ? opttag->context.data.ident
                          : gen_unnamed_struct_name();
-        enter_semantic_scope(name);
+
+        // 结构体总是要进入一个 scope 的
+        __enter_semantic_scope(name);
 
         CMM_SEM_TYPE* inner = NULL;
         int           size  = 0;
@@ -646,7 +648,7 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
                              .struct_fields_types = &inner,
                          });
 
-        exit_semantic_scope();
+        __exit_semantic_scope();
         CMM_SEM_TYPE ty = cmm_ty_make_struct(name, inner, size);
 
         /// struct 会被提升到顶层
