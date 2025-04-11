@@ -703,7 +703,9 @@ enum CMM_SEMANTIC analyze_var_dec(CMM_AST_NODE* node, struct AnalyCtxVarDec args
         *ty                      = args.ty;
         CMM_AST_NODE* vardec     = node->nodes + 0;
         ANALYZE_EXPECT_OK(analyze_var_dec(
-            vardec, (struct AnalyCtxVarDec){.ty = cmm_ty_make_array(ty, array_size)}));
+            vardec,
+            (struct AnalyCtxVarDec){.where = args.where,
+                                    .ty    = cmm_ty_make_array(ty, array_size)}));
 
         node->context.kind       = CMM_AST_KIND_IDENT;
         node->context.data.ident = vardec->context.data.ident;
