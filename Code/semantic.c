@@ -1176,6 +1176,7 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
                 node->context.data.type = type_b;
                 break;
             case CMM_TK_LB:
+                node->context.value_kind = LVALUE;
                 if (type_a.kind != CMM_ARRAY_TYPE) {
                     REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_ACCESS);
                 }
@@ -1183,8 +1184,7 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
                     strcmp(type_b.name, "int") != 0) {
                     REPORT_AND_RETURN(CMM_SE_BAD_ARRAY_INDEX);
                 }
-                node->context.data.type  = *type_a.inner;
-                node->context.value_kind = LVALUE;
+                node->context.data.type = *type_a.inner;
                 break;
             default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
