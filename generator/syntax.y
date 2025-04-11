@@ -52,6 +52,7 @@ ExtDefList: /* empty */
 ExtDef: Specifier ExtDecList SEMI
     | Specifier SEMI
     | Specifier FunDec CompSt
+    | Specifier FunDec SEMI
     ;
 
 ExtDecList: VarDec

@@ -54,6 +54,7 @@ ExtDefList: /* empty */                        { $$ = cmm_empty_tree(CMM_TK_ExtD
 ExtDef: Specifier ExtDecList SEMI              { $$ = cmm_node_tree(CMM_TK_ExtDef, 3, $1, $2, $3); }
     | Specifier SEMI                           { $$ = cmm_node_tree(CMM_TK_ExtDef, 2, $1, $2); }
     | Specifier FunDec CompSt                  { $$ = cmm_node_tree(CMM_TK_ExtDef, 3, $1, $2, $3); }
+    | Specifier FunDec SEMI                    { $$ = cmm_node_tree(CMM_TK_ExtDef, 3, $1, $2, $3); }
     ;
 
 ExtDecList: VarDec                             { $$ = cmm_node_tree(CMM_TK_ExtDecList, 1, $1); }

@@ -253,7 +253,7 @@ StringList* free_string_list_node(StringList* node) {
 }
 
 /// 进入一个新的语义分析作用域
-StringList* __enter_semantic_scope(const char* name) {
+StringList* __force_enter_semantic_scope(const char* name) {
     StringList* scope = (StringList*)malloc(sizeof(StringList));
     scope->name       = cmm_clone_string(name);
     scope->data       = NULL;
@@ -268,7 +268,7 @@ StringList* __enter_semantic_scope(const char* name) {
 }
 
 /// 退出当前的语义分析作用域
-void __exit_semantic_scope() {
+void __force_exit_semantic_scope() {
 #ifdef CMM_DEBUG_FLAGTRACE
     printf("\033[1;32mquiting scope: %s\033[0m\n", semantic_scope->name);
 #endif
@@ -298,13 +298,13 @@ void exit_semantic_scope() { __exit_semantic_scope(); }
 #else
 int         __scope_count_ = 0;
 StringList* enter_semantic_scope(const char* name) {
-    if (__scope_count_ == 0) { __enter_semantic_scope(name); }
+    if (__scope_count_ == 0) { __force_enter_semantic_scope(name); }
     __scope_count_++;
     return semantic_scope;
 }
 void exit_semantic_scope() {
     __scope_count_--;
-    if (__scope_count_ == 0) { __exit_semantic_scope(); }
+    if (__scope_count_ == 0) { __force_exit_semantic_scope(); }
 }
 #endif
 
@@ -485,6 +485,7 @@ enum CMM_SEMANTIC analyze_ext_def_list(CMM_AST_NODE* root, struct AnalyCtxExtDef
 /// ExtDef: Specifier ExtDecList SEMI
 /// | Specifier SEMI
 /// | Specifier FunDec CompSt
+/// | Specifier FunDec SEMI
 /// ;
 /// 解析扩展的defination
 enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
@@ -520,23 +521,36 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
         /// 还需要分析函数体，所以不关心这里的错误
         /// decl->nodes 是一个 &ID，否则AST错误
         char* fn_name = decl->nodes->data.val_ident;
-        enter_semantic_scope(fn_name);
+
+        int is_def = node->nodes[2].token == CMM_TK_CompSt;
+
+        if (is_def) {
+            enter_semantic_scope(fn_name);
+        } else {
+            __force_enter_semantic_scope(fn_name);
+        }
+
         analyze_fun_dec(decl,
                         (struct AnalyCtxFunDec){
                             .return_ty = spec_ty,
-                            .is_def    = node->len == 3,
+                            .is_def    = is_def,
                         });
-        if (node->len == 3) {
+        if (is_def) {
             // FunDec CompSt
             analyze_comp_st(
                 node->nodes + 2,
                 (struct AnalyCtxCompSt){.current_fn_ty = decl->context.data.type});
-        } else if (node->len == 2) {
+        } else {
             // FunDec SEMI
             // just a declare
             // TODO
         }
-        exit_semantic_scope();
+
+        if (is_def) {
+            exit_semantic_scope();
+        } else {
+            __force_exit_semantic_scope();
+        }
         RETURN_WITH_TRACE(CMM_SE_OK);
         // TODO
     } else if (decl->token == CMM_TK_SEMI) {
@@ -636,7 +650,7 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
                          : gen_unnamed_struct_name();
 
         // 结构体总是要进入一个 scope 的
-        __enter_semantic_scope(name);
+        __force_enter_semantic_scope(name);
 
         CMM_SEM_TYPE* inner = NULL;
         int           size  = 0;
@@ -648,7 +662,7 @@ enum CMM_SEMANTIC analyze_struct_specifier(CMM_AST_NODE*                  node,
                              .struct_fields_types = &inner,
                          });
 
-        __exit_semantic_scope();
+        __force_exit_semantic_scope();
         CMM_SEM_TYPE ty = cmm_ty_make_struct(name, inner, size);
 
         /// struct 会被提升到顶层
