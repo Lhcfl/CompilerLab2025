@@ -243,9 +243,17 @@ uint64_t senamtic_ctx_hash(const void* item, uint64_t seed0, uint64_t seed1) {
     return hashmap_sip(ctx->name, strlen(ctx->name), seed0, seed1);
 }
 
+/// 释放当前 StringList 节点，返回它的前驱（或者说后驱）
+StringList* free_string_list_node(StringList* node) {
+    if (node == NULL) { return NULL; }
+    StringList* ret = node->back;
+    free(node->name);
+    free(node);
+    return ret;
+}
 
 /// 进入一个新的语义分析作用域
-StringList* enter_semantic_scope(const char* name) {
+StringList* __enter_semantic_scope(const char* name) {
     StringList* scope = (StringList*)malloc(sizeof(StringList));
     scope->name       = cmm_clone_string(name);
     scope->data       = NULL;
@@ -259,17 +267,8 @@ StringList* enter_semantic_scope(const char* name) {
     return scope;
 }
 
-/// 释放当前 StringList 节点，返回它的前驱（或者说后驱）
-StringList* free_string_list_node(StringList* node) {
-    if (node == NULL) { return NULL; }
-    StringList* ret = node->back;
-    free(node->name);
-    free(node);
-    return ret;
-}
-
 /// 退出当前的语义分析作用域
-void exit_semantic_scope() {
+void __exit_semantic_scope() {
 #ifdef CMM_DEBUG_FLAGTRACE
     printf("\033[1;32mquiting scope: %s\033[0m\n", semantic_scope->name);
 #endif
@@ -285,6 +284,29 @@ void exit_semantic_scope() {
     }
     semantic_scope = free_string_list_node(semantic_scope);
 }
+
+StringList* parent_semantic_scope(StringList* scope) {
+    return scope == root_semantic_scope ? scope : semantic_scope->back;
+}
+
+/// 是谁蠢到写完了才发现嵌套作用域的要求是Requirement2啊？？
+#ifdef LAB2_REQUIREMENT_2
+StringList* enter_semantic_scope(const char* name) {
+    return __enter_semantic_scope(name);
+}
+void exit_semantic_scope() { __exit_semantic_scope(); }
+#else
+int         __scope_count_ = 0;
+StringList* enter_semantic_scope(const char* name) {
+    if (__scope_count_ == 0) { __enter_semantic_scope(name); }
+    __scope_count_++;
+    return semantic_scope;
+}
+void exit_semantic_scope() {
+    __scope_count_--;
+    if (__scope_count_ == 0) { __exit_semantic_scope(); }
+}
+#endif
 
 char* _ctx_finder(const char* name, StringList* scope) {
     if (scope == NULL) {
@@ -776,7 +798,7 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
         /// 函数定义在上层作用域
         /// 先修改当前作用域，然后再恢复
         StringList* current_scope = semantic_scope;
-        semantic_scope            = semantic_scope->back;
+        semantic_scope            = parent_semantic_scope(semantic_scope);
         int ret                   = push_context((SemanticContext){
                               .def  = args.is_def ? SEM_CTX_DEFINATION : SEM_CTX_DECLARE,
                               .kind = SEM_CTX_VAR,
