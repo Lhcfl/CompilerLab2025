@@ -46,6 +46,7 @@ int __sem_trace_spaces = 0;
 
 
 typedef struct SemanticContext {
+    int          line;
     char*        name;
     CMM_SEM_TYPE ty;
     enum {
@@ -189,6 +190,21 @@ StringList*        root_semantic_scope   = NULL;
 
 #pragma region Helper Functions
 
+void record_error(int lineno, enum CMM_SEMANTIC error) {
+#ifdef CMM_DEBUG_FLAGTRACE
+    printf("\033[1;31mError type %d at Line %d: %s\033[0m\n",
+           error,
+           lineno,
+           cmm_semantic_error_to_string(error));
+#endif
+
+    // too many errors
+    if (semantic_errors_count >= 65535) { return; }
+    semantic_errors[semantic_errors_count].line = lineno;
+    semantic_errors[semantic_errors_count].type = error;
+    semantic_errors_count++;
+}
+
 const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type) {
     switch (type) {
         case CMM_SE_BAD_AST_TREE: return "unexpected bad ast tree";
@@ -278,6 +294,10 @@ void __force_exit_semantic_scope() {
         SemanticContext* deleted = (SemanticContext*)hashmap_delete(
             semantic_context, &(SemanticContext){.name = ptr->name});
 
+        if (deleted->def == SEM_CTX_DECLARE) {
+            record_error(deleted->line, CMM_SE_FUNCTION_DECLARED_NOT_DEFINED);
+        }
+
         if (deleted != NULL) { free_semantic_ctx(deleted); }
 
         ptr = free_string_list_node(ptr);
@@ -327,8 +347,8 @@ int push_context(SemanticContext arg) {
     char* varname = _ctx_finder(arg.name, semantic_scope);
 
     // 检查是否存在这个def
-    const SemanticContext* existed =
-        hashmap_get(semantic_context, &(SemanticContext){.name = varname});
+    SemanticContext* existed = (SemanticContext*)hashmap_get(
+        semantic_context, &(SemanticContext){.name = varname});
 
     if (existed != NULL) {
 #ifdef CMM_DEBUG_FLAGTRACE
@@ -345,7 +365,9 @@ int push_context(SemanticContext arg) {
 #endif
         free(varname);
         if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE) {
-            return cmm_ty_eq(existed->ty, arg.ty);
+            int ret = cmm_ty_eq(existed->ty, arg.ty);
+            if (ret == 1 && existed->def == SEM_CTX_DECLARE) { existed->def = arg.def; }
+            return ret;
         }
         return 0;
     }
@@ -403,22 +425,6 @@ const SemanticContext* find_defination(const char* name) {
 
     return ret;
 }
-
-void record_error(int lineno, enum CMM_SEMANTIC error) {
-#ifdef CMM_DEBUG_FLAGTRACE
-    printf("\033[1;31mError type %d at Line %d: %s\033[0m\n",
-           error,
-           lineno,
-           cmm_semantic_error_to_string(error));
-#endif
-
-    // too many errors
-    if (semantic_errors_count >= 65535) { return; }
-    semantic_errors[semantic_errors_count].line = lineno;
-    semantic_errors[semantic_errors_count].type = error;
-    semantic_errors_count++;
-}
-
 #pragma endregion
 
 #pragma region Functions
@@ -816,6 +822,7 @@ enum CMM_SEMANTIC analyze_fun_dec(CMM_AST_NODE* node, struct AnalyCtxFunDec args
         StringList* current_scope = semantic_scope;
         semantic_scope            = parent_semantic_scope(semantic_scope);
         int ret                   = push_context((SemanticContext){
+                              .line = id->location.line,
                               .def  = args.is_def ? SEM_CTX_DEFINATION : SEM_CTX_DECLARE,
                               .kind = SEM_CTX_VAR,
                               .name = id_name,
