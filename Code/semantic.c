@@ -1020,6 +1020,10 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
                 analyze_stmt(node->nodes + 6,
                              (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
             }
+            CMM_SEM_TYPE exp_ty = exp->context.data.type;
+            if (exp_ty.kind != CMM_ERROR_TYPE && strcmp(exp_ty.name, "int") != 0) {
+                REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+            }
             break;
         }
         case CMM_TK_WHILE: {
@@ -1027,6 +1031,10 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
             analyze_exp(exp, (struct AnalyCtxExp){._void = 0});
             analyze_stmt(node->nodes + 4,
                          (struct AnalyCtxStmt){.current_fn_ty = args.current_fn_ty});
+            CMM_SEM_TYPE exp_ty = exp->context.data.type;
+            if (exp_ty.kind != CMM_ERROR_TYPE && strcmp(exp_ty.name, "int") != 0) {
+                REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+            }
             break;
         }
         default: {
@@ -1240,12 +1248,26 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
                 break;
             case CMM_TK_AND:
             case CMM_TK_OR:
+                if (type_a.kind != CMM_ERROR_TYPE && strcmp(type_a.name, "int") != 0) {
+                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+                }
+                if (type_b.kind != CMM_ERROR_TYPE && strcmp(type_a.name, "int") != 0) {
+                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+                }
+                node->context.data.type = type_b;
+                break;
             case CMM_TK_RELOP:
             case CMM_TK_PLUS:
             case CMM_TK_MINUS:
             case CMM_TK_STAR:
             case CMM_TK_DIV:
                 if (!cmm_ty_fitable(type_a, type_b)) {
+                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+                }
+                if (type_a.kind != CMM_ERROR_TYPE && type_a.kind != CMM_PRIMITIVE_TYPE) {
+                    REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
+                }
+                if (type_b.kind != CMM_ERROR_TYPE && type_b.kind != CMM_PRIMITIVE_TYPE) {
                     REPORT_AND_RETURN(CMM_SE_OPERAND_TYPE_ERROR);
                 }
                 node->context.data.type = type_b;
