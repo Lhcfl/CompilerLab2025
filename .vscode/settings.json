@@ -1,4 +1,10 @@
 {
+  // "editor.fontFamily": "'Twilio Sans Mono', LXGW Wenkai Mono, mononoki, monospace",
+  // "editor.fontFamily": "'CodeNewRoman Nerd Font', LXGW Wenkai Mono, mononoki, monospace",
+  "editor.fontFamily": "'Maple Mono NF CN', LXGW Wenkai Mono, mononoki, monospace",
+  // "editor.fontFamily": "'0xProto', LXGW Wenkai Mono, mononoki, monospace",
+  "editor.fontWeight": "400",
+  "editor.fontLigatures": "'calt' 1, 'cv01', 'cv02', 'cv03' 1, 'ss03'",
   "editor.formatOnSave": true,
   "editor.tabSize": 4
 }

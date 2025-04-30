@@ -142,4 +142,5 @@ CMM_SEM_TYPE  cmm_ty_make_error();
 int           cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
 int           cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
 CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field);
+char*         gen_unnamed_struct_name();
 #endif

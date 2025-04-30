@@ -233,13 +233,6 @@ const char* cmm_semantic_error_to_string(enum CMM_SEMANTIC type) {
     }
 }
 
-char* gen_unnamed_struct_name() {
-    static int unnamed_struct_count = 0;
-    char*      name                 = malloc(50);
-    sprintf(name, "(unnamed)struct_%d", unnamed_struct_count++);
-    return name;
-}
-
 void free_semantic_ctx(void* data) {
     // if (data == NULL) return;
     // const SemanticContext* ctx = data;

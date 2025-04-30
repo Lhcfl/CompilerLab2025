@@ -321,3 +321,10 @@ CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field) {
     }
     return NULL;
 }
+
+char* gen_unnamed_struct_name() {
+    static int unnamed_struct_count = 0;
+    char*      name                 = malloc(50);
+    sprintf(name, "(unnamed)struct_%d", unnamed_struct_count++);
+    return name;
+}
