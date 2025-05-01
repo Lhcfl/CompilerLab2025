@@ -1,16 +1,19 @@
 #include "ir.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
 #define IR_VAR_BUFFER_SIZE 50
 #define IR_LABEL_BUFFER_SIZE 50
 
-FILE* print_to;
+char  buffer[30000];
+char* buffer_ptr = buffer;
 
-#define PRINT_IR(...)                   \
-    {                                   \
-        fprintf(print_to, __VA_ARGS__); \
-        printf(__VA_ARGS__);            \
+#define PRINT_IR(...)                     \
+    {                                     \
+        sprintf(buffer_ptr, __VA_ARGS__); \
+        buffer_ptr += strlen(buffer_ptr); \
+        printf(__VA_ARGS__);              \
     }
 
 #define gen_ir_var_name(var)                                             \
@@ -161,8 +164,7 @@ void gen_ir_if_goto(CMM_IR_VAR   a,
     gen_ir_var_name(a);
     gen_ir_var_name(b);
     gen_ir_label_name(label);
-    fprintf(
-        print_to, "IF %s %s %s GOTO %s\n", name_a, relop, name_b, name_label);
+    PRINT_IR("IF %s %s %s GOTO %s\n", name_a, relop, name_b, name_label);
 }
 /// RETURN x
 void gen_ir_return(CMM_IR_VAR ret) {
@@ -172,7 +174,7 @@ void gen_ir_return(CMM_IR_VAR ret) {
 /// DEC x [size]
 void gen_ir_alloc(CMM_IR_VAR x, int size) {
     gen_ir_var_name(x);
-    PRINT_IR("DEC %s %d\n", name_x, size);
+    PRINT_IR("DEC %s %d\n", name_x, size * 4);
 }
 /// ARG x
 void gen_ir_arg(CMM_IR_VAR x) {
@@ -201,4 +203,4 @@ void gen_ir_write(CMM_IR_VAR x) {
     PRINT_IR("WRITE %s\n", name_x);
 }
 
-void ir_set_print_to(FILE* fp) { print_to = fp; }
+char* get_ir_output() { return buffer; }

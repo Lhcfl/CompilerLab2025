@@ -18,7 +18,7 @@
                __LINE__);                            \
         printf(__VA_ARGS__);                         \
         printf("\033[0m\n");                         \
-        exit(1);                                     \
+        exit(0);                                     \
     }
 
 #define COLOR_EMPTY "\033[0m"
@@ -116,6 +116,8 @@ typedef struct CMM_SEM_TYPE {
     /// 对于数组，我们期望它是一个 CMM_SEM_TYPE
     /// 对于函数，我们期望它是 [Return Type, ...Args Type]
     struct CMM_SEM_TYPE*   inner;
+    /// 占用的空间大小
+    int                    bytes4;
 } CMM_SEM_TYPE;
 
 /// 语义分析的 Context

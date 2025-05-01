@@ -263,21 +263,23 @@ char* cmm_ty_make_fn_typename(CMM_SEM_TYPE ty) {
 
 CMM_SEM_TYPE cmm_ty_make_primitive(char* name) {
     CMM_SEM_TYPE ret;
-    ret.kind  = CMM_PRIMITIVE_TYPE;
-    ret.name  = name;
-    ret.bind  = NULL;
-    ret.inner = NULL;
-    ret.size  = 0;
+    ret.kind   = CMM_PRIMITIVE_TYPE;
+    ret.name   = name;
+    ret.bind   = NULL;
+    ret.inner  = NULL;
+    ret.size   = 0;
+    ret.bytes4 = 1;
     return ret;
 }
 
 CMM_SEM_TYPE cmm_ty_make_array(CMM_SEM_TYPE* inner, int size) {
     CMM_SEM_TYPE ret;
-    ret.kind  = CMM_ARRAY_TYPE;
-    ret.size  = size;
-    ret.inner = inner;
-    ret.bind  = NULL;
-    ret.name  = cmm_ty_make_array_typename(ret);
+    ret.kind   = CMM_ARRAY_TYPE;
+    ret.size   = size;
+    ret.inner  = inner;
+    ret.bind   = NULL;
+    ret.bytes4 = size * inner->bytes4;
+    ret.name   = cmm_ty_make_array_typename(ret);
     return ret;
 }
 
@@ -288,16 +290,20 @@ CMM_SEM_TYPE cmm_ty_make_struct(char* name, CMM_SEM_TYPE* inner, int size) {
     ret.inner = inner;
     ret.bind  = NULL;
     ret.name  = name;
+
+    ret.bytes4 = 0;
+    for (int i = 0; i < size; i++) { ret.bytes4 += inner[i].bytes4; }
     return ret;
 }
 
 CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size) {
     CMM_SEM_TYPE ret;
-    ret.kind  = CMM_FUNCTION_TYPE;
-    ret.size  = size;
-    ret.inner = inner;
-    ret.bind  = NULL;
-    ret.name  = cmm_ty_make_fn_typename(ret);
+    ret.kind   = CMM_FUNCTION_TYPE;
+    ret.size   = size;
+    ret.inner  = inner;
+    ret.bind   = NULL;
+    ret.name   = cmm_ty_make_fn_typename(ret);
+    ret.bytes4 = 1;
     return ret;
 }
 
@@ -307,29 +313,25 @@ CMM_SEM_TYPE cmm_create_function_type(int size, ...) {
     va_list args;
     va_start(args, size);
 
-    CMM_SEM_TYPE ret;
-    ret.kind  = CMM_FUNCTION_TYPE;
-    ret.size  = size;
-    ret.inner = malloc(sizeof(CMM_SEM_TYPE) * size);
+    CMM_SEM_TYPE* inner = malloc(sizeof(CMM_SEM_TYPE) * size);
 
     for (int i = 0; i < size; i++) {
         char* typename = va_arg(args, char*);
-        ret.inner[i]   = cmm_ty_make_primitive(typename);
+        inner[i]       = cmm_ty_make_primitive(typename);
     }
     va_end(args);
 
-    ret.bind = NULL;
-    ret.name = cmm_ty_make_fn_typename(ret);
-    return ret;
+    return cmm_ty_make_func(inner, size);
 }
 
 CMM_SEM_TYPE cmm_ty_make_error() {
     CMM_SEM_TYPE ret;
-    ret.kind  = CMM_ERROR_TYPE;
-    ret.size  = 0;
-    ret.inner = NULL;
-    ret.bind  = NULL;
-    ret.name  = "(error)";
+    ret.kind   = CMM_ERROR_TYPE;
+    ret.size   = 0;
+    ret.inner  = NULL;
+    ret.bind   = NULL;
+    ret.name   = "(error)";
+    ret.bytes4 = 0;
     return ret;
 }
 

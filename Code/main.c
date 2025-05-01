@@ -91,6 +91,6 @@ int main(int argc, char** argv) {
 #endif
 
     FILE* ir = fopen(argv[2], "w");
-    ir_set_print_to(ir);
     cmm_trans_code(&cmm_parsed_root);
+    fprintf(ir, "%s", get_ir_output());
 }

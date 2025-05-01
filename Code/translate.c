@@ -154,6 +154,9 @@ typedef struct TretExp {
     CMM_IR_VAR          bind;
     CMM_SEM_TYPE        type;
     enum CMM_VALUE_KIND vkind;
+    bool                is_ident;
+    /// lvalue 的 addr
+    CMM_IR_VAR          addr;
 } TretExp;
 
 const TransDef* get_trans_defination(const char* name);
@@ -926,9 +929,13 @@ tret trans_stmt(CMM_AST_NODE* node, struct TargStmt args) {
             CMM_IR_LABEL  lbl_body = ir_new_label("while");
             CMM_IR_LABEL  lbl_nxt  = ir_new_label("nxt");
             CMM_AST_NODE* exp      = node->nodes + 2;
-            TretExp       check = trans_exp(exp, (struct TargExp){._void = 0});
+
+            gen_ir_label_start(lbl_body);
+
+            TretExp check = trans_exp(exp, (struct TargExp){._void = 0});
 
             gen_ir_if_goto(check.bind, ir_new_immediate_int(0), "==", lbl_nxt);
+
             trans_stmt(node->nodes + 4,
                        (struct TargStmt){.current_fn_ty = args.current_fn_ty});
 
@@ -1057,6 +1064,11 @@ tret trans_dec(CMM_AST_NODE* node, struct TargDec args) {
     args.fill_into[*args.offset] = ret_vardec.type;
     *args.offset                 = *args.offset + 1;
 
+    if (ret_vardec.type.kind == CMM_ARRAY_TYPE ||
+        ret_vardec.type.kind == CMM_PROD_TYPE) {
+        gen_ir_alloc(ret_vardec.bind, ret_vardec.type.bytes4);
+    }
+
     if (node->len == 3) {
         if (args.where == INSIDE_A_STRUCT) {
             cmm_panic("CMM_SE_BAD_STRUCT_DOMAIN");
@@ -1147,8 +1159,8 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 
         /// struct.field
         if (op->token == CMM_TK_DOT) {
-            ret.vkind = RVALUE;
-            cmm_panic("还没实现到");
+            ret.vkind = LVALUE;
+            cmm_panic("struct的获取还没实现到");
         }
 
         TretExp b = trans_exp(node_b, args);
@@ -1158,7 +1170,12 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 ret.vkind = LVALUE;
                 ret.type  = b.type;
                 ret.bind  = a.bind;
-                gen_ir_assign(a.bind, b.bind);
+
+                if (!a.is_ident && a.vkind == LVALUE) {
+                    gen_ir_put_into_addr(a.addr, b.bind);
+                } else {
+                    gen_ir_assign(a.bind, b.bind);
+                }
                 RETURN_WITH_TRACE(ret);
             case CMM_TK_AND: {
                 ret.type = b.type;
@@ -1214,11 +1231,24 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 RETURN_WITH_TRACE(ret);
             /// array[idx]
             case CMM_TK_LB:
+                if (!a.is_ident) {
+                    cmm_panic("Cannot translate: Code contains variables of "
+                              "multi-dimensional array type or parameters of "
+                              "array type. ");
+                }
                 ret.vkind = LVALUE;
                 ret.type  = *a.type.inner;
                 ret.bind  = ir_new_tmpvar();
-                cmm_panic("还没实现到");
-                gen_ir_add(ret.bind, a.bind, b.bind);
+
+                CMM_IR_VAR arr_addr = ir_new_tmpvar();
+                gen_ir_get_addr(arr_addr, a.bind);
+                ret.addr          = ir_new_tmpvar();
+                CMM_IR_VAR offset = ir_new_tmpvar();
+
+                gen_ir_mul(offset, b.bind, ir_new_immediate_int(4));
+
+                gen_ir_add(ret.addr, arr_addr, offset);
+                gen_ir_dereference(ret.bind, ret.addr);
                 RETURN_WITH_TRACE(ret);
             default: cmm_panic("bad ast tree");
         }
@@ -1239,9 +1269,10 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 #endif
 
         if (node->len == 1) {
-            ret.vkind = LVALUE;
-            ret.type  = a_def->ty;
-            ret.bind  = a_def->ir_var;
+            ret.vkind    = LVALUE;
+            ret.is_ident = true;
+            ret.type     = a_def->ty;
+            ret.bind     = a_def->ir_var;
             RETURN_WITH_TRACE(ret);
         }
 

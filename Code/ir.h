@@ -72,6 +72,5 @@ void gen_ir_read(CMM_IR_VAR x);
 /// WRITE x
 void gen_ir_write(CMM_IR_VAR x);
 
-void ir_set_print_to(FILE* fp);
-
+char* get_ir_output();
 #endif
