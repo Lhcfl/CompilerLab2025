@@ -4,3 +4,4 @@ CompileFlags:
     - "-std=c99"
     - "-Wall"
     - "-Wextra"
+    - "-DCMM_DEBUG_LAB3TRACE"

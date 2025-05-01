@@ -10,12 +10,12 @@
 #define CMM_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 
-#define cmm_panic(...)                                                      \
-    {                                                                       \
-        printf("\033[1;31m In %s (Line %d) [PAINC]: ", __func__, __LINE__); \
-        printf(__VA_ARGS__);                                                \
-        printf("\033[0m\n");                                                \
-        exit(1);                                                            \
+#define cmm_panic(...)                                                              \
+    {                                                                               \
+        printf("\033[1;31m In %s (%s:%d) [PAINC]: ", __func__, __FILE__, __LINE__); \
+        printf(__VA_ARGS__);                                                        \
+        printf("\033[0m\n");                                                        \
+        exit(1);                                                                    \
     }
 
 extern int yylex(void);
@@ -160,4 +160,5 @@ int           cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
 int           cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
 CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field);
 char*         gen_unnamed_struct_name();
+void          cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel);
 #endif
