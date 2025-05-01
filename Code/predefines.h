@@ -10,12 +10,15 @@
 #define CMM_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 
-#define cmm_panic(...)                                                              \
-    {                                                                               \
-        printf("\033[1;31m In %s (%s:%d) [PAINC]: ", __func__, __FILE__, __LINE__); \
-        printf(__VA_ARGS__);                                                        \
-        printf("\033[0m\n");                                                        \
-        exit(1);                                                                    \
+#define cmm_panic(...)                               \
+    {                                                \
+        printf("\033[1;31m In %s (%s:%d) [PAINC]: ", \
+               __func__,                             \
+               __FILE__,                             \
+               __LINE__);                            \
+        printf(__VA_ARGS__);                         \
+        printf("\033[0m\n");                         \
+        exit(1);                                     \
     }
 
 #define COLOR_EMPTY "\033[0m"
@@ -140,6 +143,7 @@ typedef struct CMM_AST_NODE {
         float val_float;
         char* val_type;
         char* val_ident;
+        char* val_relop;
     } data;
     struct CMM_AST_NODE*    nodes;
     int                     len;

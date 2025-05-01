@@ -1,43 +1,60 @@
 #include "ir.h"
+#include <stddef.h>
 #include <stdio.h>
 
-#define IR_VAR_BUFFER_SIZE 20
-#define IR_LABEL_BUFFER_SIZE 20
+#define IR_VAR_BUFFER_SIZE 50
+#define IR_LABEL_BUFFER_SIZE 50
 
-#define gen_ir_var_name(var)                                \
-    char name_##var[IR_VAR_BUFFER_SIZE];                    \
-    switch (var.kind) {                                     \
-        case IR_VARIABLE: {                                 \
-            sprintf(name_##var, "t%d", var.data.id);        \
-            break;                                          \
-        }                                                   \
-        case IR_IMMEDIATE_INT: {                            \
-            sprintf(name_##var, "#%d", var.data.val_int);   \
-            break;                                          \
-        }                                                   \
-        case IR_IMMEDIATE_FLOAT: {                          \
-            sprintf(name_##var, "#%f", var.data.val_float); \
-            break;                                          \
-        }                                                   \
+#define gen_ir_var_name(var)                                             \
+    char name_##var[IR_VAR_BUFFER_SIZE];                                 \
+    switch (var.kind) {                                                  \
+        case IR_VARIABLE: {                                              \
+            if (var.data.id > 0) {                                       \
+                sprintf(name_##var, "var_%s_%d", var.desc, var.data.id); \
+            } else {                                                     \
+                sprintf(name_##var, "tmp_%d", -var.data.id);             \
+            }                                                            \
+            break;                                                       \
+        }                                                                \
+        case IR_IMMEDIATE_INT: {                                         \
+            sprintf(name_##var, "#%d", var.data.val_int);                \
+            break;                                                       \
+        }                                                                \
+        case IR_IMMEDIATE_FLOAT: {                                       \
+            sprintf(name_##var, "#%f", var.data.val_float);              \
+            break;                                                       \
+        }                                                                \
     }
 
 #define gen_ir_label_name(label)             \
     char name_##label[IR_LABEL_BUFFER_SIZE]; \
-    sprintf(name_##label, "label%d", label.id);
+    sprintf(name_##label, "label_%s_%d", label.desc, label.id);
 
-CMM_IR_LABEL ir_new_label() {
+CMM_IR_LABEL ir_new_label(char* desc) {
     static int   label_count = 0;
     CMM_IR_LABEL label;
-    label.id = label_count++;
+    label.id   = label_count++;
+    label.desc = desc;
     return label;
 }
 
-CMM_IR_VAR ir_new_var() {
+CMM_IR_VAR ir_new_var(char* desc) {
     static int var_count = 0;
     var_count++;
     return (CMM_IR_VAR){
         .kind    = IR_VARIABLE,
         .data.id = var_count,
+        .desc    = desc,
+    };
+}
+
+CMM_IR_VAR ir_new_tmpvar() {
+    static int var_count = 1;
+    var_count--;
+    return (CMM_IR_VAR){
+        .kind    = IR_VARIABLE,
+        .data.id = var_count,
+        .desc    = NULL,
     };
 }
 
@@ -129,7 +146,10 @@ void gen_ir_goto(CMM_IR_LABEL label) {
     printf("GOTO %s\n", name_label);
 }
 /// IF x [relop] y GOTO z
-void gen_ir_if_goto(CMM_IR_VAR a, CMM_IR_VAR b, const char* relop, CMM_IR_LABEL label) {
+void gen_ir_if_goto(CMM_IR_VAR   a,
+                    CMM_IR_VAR   b,
+                    const char*  relop,
+                    CMM_IR_LABEL label) {
     gen_ir_var_name(a);
     gen_ir_var_name(b);
     gen_ir_label_name(label);

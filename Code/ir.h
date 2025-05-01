@@ -9,6 +9,7 @@ enum CMM_IR_VAR_KIND {
 
 typedef struct CMM_IR_VAR {
     enum CMM_IR_VAR_KIND kind;
+    char*                desc;
     union {
         int   id;
         int   val_int;
@@ -17,11 +18,13 @@ typedef struct CMM_IR_VAR {
 } CMM_IR_VAR;
 
 typedef struct CMM_IR_LABEL {
-    int id;
+    char* desc;
+    int   id;
 } CMM_IR_LABEL;
 
-CMM_IR_LABEL ir_new_label();
-CMM_IR_VAR   ir_new_var();
+CMM_IR_LABEL ir_new_label(char* desc);
+CMM_IR_VAR   ir_new_var(char* desc);
+CMM_IR_VAR   ir_new_tmpvar();
 CMM_IR_VAR   ir_new_immediate_int(int x);
 CMM_IR_VAR   ir_new_immediate_float(float x);
 
@@ -48,7 +51,10 @@ void gen_ir_put_into_addr(CMM_IR_VAR dst, CMM_IR_VAR src);
 /// GOTO x
 void gen_ir_goto(CMM_IR_LABEL label);
 /// IF x [relop] y GOTO z
-void gen_ir_if_goto(CMM_IR_VAR a, CMM_IR_VAR b, const char* relop, CMM_IR_LABEL label);
+void gen_ir_if_goto(CMM_IR_VAR   a,
+                    CMM_IR_VAR   b,
+                    const char*  relop,
+                    CMM_IR_LABEL label);
 /// RETURN x
 void gen_ir_return(CMM_IR_VAR ret);
 /// DEC x [size]

@@ -100,7 +100,8 @@ void cmm_log_node(CMM_AST_NODE* val) {
             break;
         }
         case CMM_AST_NODE_IDENT: {
-            printf("\"kind\": \"ident\", \"val\": \"%s\" }", val->data.val_ident);
+            printf("\"kind\": \"ident\", \"val\": \"%s\" }",
+                   val->data.val_ident);
             break;
         }
         case CMM_AST_NODE_TREE: {
@@ -135,6 +136,10 @@ void cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token) {
     yylval.kind          = CMM_AST_NODE_TOKEN;
     yylval.token         = token;
     yylval.location.text = cmm_clone_string(yytext);
+
+    if (token == CMM_TK_RELOP) {
+        yylval.data.val_relop = cmm_clone_string(yytext);
+    }
 }
 
 void cmm_send_yylval_int(int val) {
@@ -187,13 +192,14 @@ CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...) {
     ret.nodes        = malloc(sizeof(CMM_AST_NODE) * len);
 
     for (int i = 0; i < len; i++) {
-        CMM_AST_NODE     node   = va_arg(args, CMM_AST_NODE);
-        CMM_AST_LOCATION loc    = node.location;
-        ret.nodes[i]            = node;
-        ret.location.line       = CMM_MIN(loc.line, ret.location.line);
-        ret.location.column     = CMM_MIN(loc.column, ret.location.column);
-        ret.location.end_line   = CMM_MAX(loc.end_line, ret.location.end_line);
-        ret.location.end_column = CMM_MAX(loc.end_column, ret.location.end_column);
+        CMM_AST_NODE     node = va_arg(args, CMM_AST_NODE);
+        CMM_AST_LOCATION loc  = node.location;
+        ret.nodes[i]          = node;
+        ret.location.line     = CMM_MIN(loc.line, ret.location.line);
+        ret.location.column   = CMM_MIN(loc.column, ret.location.column);
+        ret.location.end_line = CMM_MAX(loc.end_line, ret.location.end_line);
+        ret.location.end_column =
+            CMM_MAX(loc.end_column, ret.location.end_column);
     }
     for (int i = 1; i < len; i++) {
         if (ret.nodes[i].location.line == 0x7fffffff) {
@@ -201,7 +207,8 @@ CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...) {
             ret.nodes[i].location.end_line = ret.nodes[i - 1].location.end_line;
         }
         if (ret.nodes[i].location.column == 0x7fffffff) {
-            ret.nodes[i].location.end_column = ret.nodes[i - 1].location.end_column;
+            ret.nodes[i].location.end_column =
+                ret.nodes[i - 1].location.end_column;
         }
     }
 
@@ -328,7 +335,9 @@ CMM_SEM_TYPE cmm_ty_make_error() {
 
 /// @returns 0 如果不同
 /// @returns 1 如果相同
-int cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2) { return strcmp(t1.name, t2.name) == 0; }
+int cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2) {
+    return strcmp(t1.name, t2.name) == 0;
+}
 
 int cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2) {
     /// 我们认为错误类型能匹配任意类型
@@ -380,7 +389,7 @@ void cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel) {
         case CMM_AST_NODE_TREE: {
             printf("%s", cmm_token_tostring(val->token));
             if (fuel > 1) {
-                printf("= [");
+                printf("=[");
                 for (int i = 0; i < val->len; i++) {
                     cmm_debug_show_node_info(val->nodes + i, fuel - 1);
                     printf(", ");
