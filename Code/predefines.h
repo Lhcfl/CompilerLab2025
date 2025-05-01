@@ -109,6 +109,13 @@ typedef struct CMM_SEM_CONTEXT {
     } data;
 } CMM_SEM_CONTEXT;
 
+/// 语法翻译的 Context
+typedef struct CMM_TRANS_CONTEXT {
+    enum CMM_VALUE_KIND value_kind;
+    CMM_SEM_TYPE        type;
+    char*               ident;
+} CMM_TRANS_CONTEXT;
+
 typedef struct CMM_AST_NODE {
     enum CMM_AST_NODE_KIND kind;
     enum CMM_SYNTAX_TOKEN  token;
@@ -122,6 +129,7 @@ typedef struct CMM_AST_NODE {
     int                     len;
     struct CMM_AST_LOCATION location;
     CMM_SEM_CONTEXT         context;
+    CMM_TRANS_CONTEXT       trans;
 } CMM_AST_NODE;
 
 #define YYSTYPE CMM_AST_NODE

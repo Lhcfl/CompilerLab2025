@@ -9,7 +9,10 @@
 
 #pragma region Definations
 
-typedef void tres;
+typedef void* tret;
+
+#undef FUNCTION_TRACE
+#undef RETURN_WITH_TRACE
 
 #ifdef CMM_DEBUG_LAB3TRACE
 int __trans_trace_spaces = 0;
@@ -135,29 +138,33 @@ struct TCtxArgs {
     CMM_SEM_TYPE calling;
 };
 
+typedef struct RetOptTag {
+    char* name;
+} RetOptTag;
+
 const TransContext* get_trans_defination(const char* name);
 
-tres trans_program(CMM_AST_NODE* node, struct TCtxProgram args);
-tres trans_ext_def_list(CMM_AST_NODE* node, struct TCtxExtDefList args);
-tres trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef args);
-tres trans_specifier(CMM_AST_NODE* node, struct TCtxSpecifier args);
-tres trans_ext_dec_list(CMM_AST_NODE* node, struct TCtxExtDecList args);
-tres trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args);
-tres trans_comp_st(CMM_AST_NODE* node, struct TCtxCompSt args);
-tres trans_var_dec(CMM_AST_NODE* node, struct TCtxVarDec args);
-tres trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier args);
-tres trans_opt_tag(CMM_AST_NODE* node, struct TCtxOptTag args);
-tres trans_def_list(CMM_AST_NODE* node, struct TCtxDefList args);
-tres trans_tag(CMM_AST_NODE* node, struct TCtxTag args);
-tres trans_var_list(CMM_AST_NODE* node, struct TCtxVarList args);
-tres trans_param_dec(CMM_AST_NODE* node, struct TCtxParamDec args);
-tres trans_stmt_list(CMM_AST_NODE* node, struct TCtxStmtList args);
-tres trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args);
-tres trans_exp(CMM_AST_NODE* node, struct TCtxExp args);
-tres trans_def(CMM_AST_NODE* node, struct TCtxDef args);
-tres trans_dec_list(CMM_AST_NODE* node, struct TCtxDecList args);
-tres trans_dec(CMM_AST_NODE* node, struct TCtxDec args);
-tres trans_args(CMM_AST_NODE* node, struct TCtxArgs args);
+tret      trans_program(CMM_AST_NODE* node, struct TCtxProgram args);
+tret      trans_ext_def_list(CMM_AST_NODE* node, struct TCtxExtDefList args);
+tret      trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef args);
+tret      trans_specifier(CMM_AST_NODE* node, struct TCtxSpecifier args);
+tret      trans_ext_dec_list(CMM_AST_NODE* node, struct TCtxExtDecList args);
+tret      trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args);
+tret      trans_comp_st(CMM_AST_NODE* node, struct TCtxCompSt args);
+tret      trans_var_dec(CMM_AST_NODE* node, struct TCtxVarDec args);
+tret      trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier args);
+RetOptTag trans_opt_tag(CMM_AST_NODE* node, struct TCtxOptTag args);
+tret      trans_def_list(CMM_AST_NODE* node, struct TCtxDefList args);
+tret      trans_tag(CMM_AST_NODE* node, struct TCtxTag args);
+tret      trans_var_list(CMM_AST_NODE* node, struct TCtxVarList args);
+tret      trans_param_dec(CMM_AST_NODE* node, struct TCtxParamDec args);
+tret      trans_stmt_list(CMM_AST_NODE* node, struct TCtxStmtList args);
+tret      trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args);
+tret      trans_exp(CMM_AST_NODE* node, struct TCtxExp args);
+tret      trans_def(CMM_AST_NODE* node, struct TCtxDef args);
+tret      trans_dec_list(CMM_AST_NODE* node, struct TCtxDecList args);
+tret      trans_dec(CMM_AST_NODE* node, struct TCtxDec args);
+tret      trans_args(CMM_AST_NODE* node, struct TCtxArgs args);
 #pragma endregion
 
 #pragma region Global States
@@ -385,7 +392,7 @@ int cmm_trans_code(CMM_AST_NODE* node) {
 }
 
 /// Program: ExtDefList;
-tres trans_program(CMM_AST_NODE* node, struct TCtxProgram _) {
+tret trans_program(CMM_AST_NODE* node, struct TCtxProgram _) {
     (void)(_);
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
@@ -393,10 +400,12 @@ tres trans_program(CMM_AST_NODE* node, struct TCtxProgram _) {
     if (node->len != 1) cmm_panic("bad ast tree");
 
     trans_ext_def_list(node->nodes, (struct TCtxExtDefList){._void = 0});
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// ExtDefList: /* empty */ | ExtDef ExtDefList
-tres trans_ext_def_list(CMM_AST_NODE* root, struct TCtxExtDefList _) {
+tret trans_ext_def_list(CMM_AST_NODE* root, struct TCtxExtDefList _) {
     (void)_;
     FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
@@ -407,7 +416,7 @@ tres trans_ext_def_list(CMM_AST_NODE* root, struct TCtxExtDefList _) {
         if (node->token != CMM_TK_ExtDefList) cmm_panic("bad ast tree");
 
         if (node->len == 0) {
-
+            RETURN_WITH_TRACE(0);
         } else if (node->len == 2) {
             trans_ext_def(node->nodes + 0, (struct TCtxExtDef){._void = 0});
             // TODO
@@ -424,7 +433,7 @@ tres trans_ext_def_list(CMM_AST_NODE* root, struct TCtxExtDefList _) {
 /// | Specifier FunDec SEMI
 /// ;
 /// 解析扩展的defination
-tres trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
+tret trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
     (void)(_);
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
@@ -437,7 +446,7 @@ tres trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
     /// 错误的类型会被置为 error 这个特殊的原型类
     trans_specifier(specifier, (struct TCtxSpecifier){._void = 0});
 
-    CMM_SEM_TYPE spec_ty = specifier->context.data.type;
+    CMM_SEM_TYPE spec_ty = specifier->trans.type;
 
 #ifdef CMM_DEBUG_LAB3TRACE
     printf("type is %s\n", spec_ty.name);
@@ -446,7 +455,7 @@ tres trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
     if (decl->token == CMM_TK_ExtDecList) {
         /// 变量定义
         trans_ext_dec_list(decl, (struct TCtxExtDecList){.ty = spec_ty});
-
+        RETURN_WITH_TRACE(0);
     } else if (decl->token == CMM_TK_FunDec) {
         /// 还需要分析函数体，所以不关心这里的错误
         /// decl->nodes 是一个 &ID，否则AST错误
@@ -468,7 +477,7 @@ tres trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
         if (is_def) {
             // FunDec CompSt
             trans_comp_st(node->nodes + 2,
-                          (struct TCtxCompSt){.current_fn_ty = decl->context.data.type});
+                          (struct TCtxCompSt){.current_fn_ty = decl->trans.type});
         } else {
             // FunDec SEMI
             // just a declare
@@ -481,17 +490,18 @@ tres trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
             __force_exit_trans_scope();
         }
 
-        // TODO
+        RETURN_WITH_TRACE(0);
     } else if (decl->token == CMM_TK_SEMI) {
         /// 在这里声明了一个 Type
         /// 期望在 Specifier 里已经注册了这个 Type
+        RETURN_WITH_TRACE(0);
     }
 
     cmm_panic("bad ast tree");
 }
 
 /// ExtDecList: VarDec | VarDec COMMA ExtDecList
-tres trans_ext_dec_list(CMM_AST_NODE* root, struct TCtxExtDecList args) {
+tret trans_ext_dec_list(CMM_AST_NODE* root, struct TCtxExtDecList args) {
     FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     while (true) {
@@ -504,8 +514,9 @@ tres trans_ext_dec_list(CMM_AST_NODE* root, struct TCtxExtDecList args) {
                           .ty    = args.ty,
                           .where = INSIDE_A_BLOCK,
                       });
-        if (node->len == 1) {
 
+        if (node->len == 1) {
+            RETURN_WITH_TRACE(0);
         } else if (node->len == 3) {
             node = node->nodes + 2;
         } else {
@@ -516,7 +527,7 @@ tres trans_ext_dec_list(CMM_AST_NODE* root, struct TCtxExtDecList args) {
 
 
 /// Specifier: TYPE | StructSpecifier
-tres trans_specifier(CMM_AST_NODE* node, struct TCtxSpecifier _) {
+tret trans_specifier(CMM_AST_NODE* node, struct TCtxSpecifier _) {
     (void)(_);
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
@@ -524,21 +535,21 @@ tres trans_specifier(CMM_AST_NODE* node, struct TCtxSpecifier _) {
     if (node->len != 1) cmm_panic("bad ast tree");
 
     CMM_AST_NODE* inner = node->nodes;
-    node->context.kind  = CMM_AST_KIND_TYPE;
 
     if (inner->token == CMM_TK_TYPE) {
-        node->context.data.type = cmm_ty_make_primitive(inner->data.val_type);
-
+        node->trans.type = cmm_ty_make_primitive(inner->data.val_type);
+        RETURN_WITH_TRACE(0);
     } else if (inner->token == CMM_TK_StructSpecifier) {
         trans_struct_specifier(inner, (struct TCtxStructSpecifier){._void = 0});
-        node->context.data.type = inner->context.data.type;
+        node->trans.type = inner->trans.type;
+        RETURN_WITH_TRACE(0);
     }
 
     cmm_panic("bad ast tree");
 }
 
 /// StructSpecifier: STRUCT OptTag LC DefList RC | STRUCT Tag
-tres trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier _) {
+tret trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier _) {
     (void)(_);
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
@@ -547,14 +558,13 @@ tres trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier _) {
     CMM_AST_NODE* tag = node->nodes + 1;
 
     if (node->len == 2) {
-        (trans_tag(tag, (struct TCtxTag){._void = 0}));
-        node->context.kind      = CMM_AST_KIND_TYPE;
-        const TransContext* ctx = get_trans_defination(tag->context.data.ident);
+        trans_tag(tag, (struct TCtxTag){._void = 0});
+        const TransContext* ctx = get_trans_defination(tag->trans.ident);
         if (ctx == NULL) {
-            node->context.data.type = cmm_ty_make_error();
+            node->trans.type = cmm_ty_make_error();
             cmm_panic("CMM_SE_UNDEFINED_STRUCT");
         } else {
-            node->context.data.type = ctx->ty;
+            node->trans.type = ctx->ty;
         }
         /// TODO
     } else if (node->len == 5) {
@@ -562,12 +572,10 @@ tres trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier _) {
         CMM_AST_NODE* opttag  = node->nodes + 1;
         CMM_AST_NODE* deflist = node->nodes + 3;
 
-        (trans_opt_tag(opttag, (struct TCtxOptTag){._void = 0}));
+        RetOptTag res = trans_opt_tag(opttag, (struct TCtxOptTag){._void = 0});
 
         // 如果 struct 有名字
-        char* name = opttag->context.kind == CMM_AST_KIND_IDENT
-                         ? opttag->context.data.ident
-                         : gen_unnamed_struct_name();
+        char* name = res.name ? res.name : gen_unnamed_struct_name();
 
         // 结构体总是要进入一个 scope 的
         __force_enter_trans_scope(name);
@@ -595,33 +603,40 @@ tres trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier _) {
                                .ty   = ty,
         });
         trans_scope               = current_scope;
-        node->context.data.type   = ty;
+        node->trans.type          = ty;
 
         if (!ok) { cmm_panic("CMM_SE_DUPLICATE_STRUCT"); }
     } else {
         cmm_panic("bad ast tree");
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// Tag: empty | ID
-tres trans_opt_tag(CMM_AST_NODE* node, struct TCtxOptTag _) {
+RetOptTag trans_opt_tag(CMM_AST_NODE* node, struct TCtxOptTag _) {
     (void)(_);
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_OptTag) cmm_panic("bad ast tree");
     if (node->len == 0) {
-
-        if (node->len != 1) cmm_panic("bad ast tree");
+        RETURN_WITH_TRACE(((RetOptTag){
+            .name = NULL,
+        }));
+    }
+    if (node->len == 1) {
         CMM_AST_NODE* tag = node->nodes + 0;
         if (tag->token != CMM_TK_ID) cmm_panic("bad ast tree");
-
-        node->context.kind       = CMM_AST_KIND_IDENT;
-        node->context.data.ident = tag->data.val_ident;
+        node->trans.ident = tag->data.val_ident;
+        RETURN_WITH_TRACE(((RetOptTag){
+            .name = tag->data.val_ident,
+        }));
     }
+    cmm_panic("bad ast tree");
 }
 
 /// Tag: ID
-tres trans_tag(CMM_AST_NODE* node, struct TCtxTag _) {
+tret trans_tag(CMM_AST_NODE* node, struct TCtxTag _) {
     (void)(_);
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
@@ -631,33 +646,33 @@ tres trans_tag(CMM_AST_NODE* node, struct TCtxTag _) {
     CMM_AST_NODE* tag = node->nodes + 0;
     if (tag->token != CMM_TK_ID) cmm_panic("bad ast tree");
 
-    node->context.kind       = CMM_AST_KIND_IDENT;
-    node->context.data.ident = tag->data.val_ident;
+    node->trans.ident = tag->data.val_ident;
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// VarDec: ID | VarDec LB INT RB
 /// TODO
-tres trans_var_dec(CMM_AST_NODE* node, struct TCtxVarDec args) {
+tret trans_var_dec(CMM_AST_NODE* node, struct TCtxVarDec args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_VarDec) cmm_panic("bad ast tree");
 
     if (node->len == 1) {
         // ID
-        node->context.kind       = CMM_AST_KIND_IDENT;
-        node->context.data.ident = node->nodes->data.val_ident;
+        node->trans.ident = node->nodes->data.val_ident;
         /// 注册这个变量
-        args.ty.bind             = node->context.data.ident;
-        int ok                   = gen_trans_context((TransContext){
-                              .def  = SEM_CTX_DEFINATION,
-                              .kind = SEM_CTX_VAR,
-                              .name = node->nodes->data.val_ident,
-                              .ty   = args.ty,
+        args.ty.bind      = node->trans.ident;
+        int ok            = gen_trans_context((TransContext){
+                       .def  = SEM_CTX_DEFINATION,
+                       .kind = SEM_CTX_VAR,
+                       .name = node->nodes->data.val_ident,
+                       .ty   = args.ty,
         });
         if (ok) {
-            node->context.data.type = args.ty;
+            node->trans.type = args.ty;
         } else {
-            node->context.data.type = cmm_ty_make_error();
+            node->trans.type = cmm_ty_make_error();
             switch (args.where) {
                 case INSIDE_A_BLOCK: cmm_panic("CMM_SE_DUPLICATE_VARIABLE_DEFINATION");
                 case INSIDE_A_STRUCT: cmm_panic("CMM_SE_BAD_STRUCT_DOMAIN");
@@ -674,18 +689,19 @@ tres trans_var_dec(CMM_AST_NODE* node, struct TCtxVarDec args) {
                        (struct TCtxVarDec){.where = args.where,
                                            .ty    = cmm_ty_make_array(ty, array_size)}));
 
-        node->context.kind       = CMM_AST_KIND_IDENT;
-        node->context.data.ident = vardec->context.data.ident;
-        node->context.data.type  = vardec->context.data.type;
+        node->trans.ident = vardec->trans.ident;
+        node->trans.type  = vardec->trans.type;
         // TODO
     } else {
         cmm_panic("bad ast tree");
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// FunDec: ID LP VarList RP | ID LP RP
 /// TODO
-tres trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args) {
+tret trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_FunDec) cmm_panic("bad ast tree");
@@ -717,9 +733,8 @@ tres trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args) {
         cmm_panic("bad ast tree");
     }
 
-    node->context.kind       = CMM_AST_KIND_DECLARE;
-    node->context.data.type  = fnty;
-    node->context.data.ident = id_name;
+    node->trans.type  = fnty;
+    node->trans.ident = id_name;
 
     // TODO 判断dec有误？
     {
@@ -753,11 +768,13 @@ tres trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args) {
             }
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// VarList: ParamDec COMMA VarList | ParamDec
 /// TODO
-tres trans_var_list(CMM_AST_NODE* root, struct TCtxVarList args) {
+tret trans_var_list(CMM_AST_NODE* root, struct TCtxVarList args) {
     FUNCTION_TRACE;
     CMM_AST_NODE* node      = root;
     int           len       = 0;
@@ -791,7 +808,7 @@ tres trans_var_list(CMM_AST_NODE* root, struct TCtxVarList args) {
 
 /// ParamDec: Specifier VarDec
 /// TODO
-tres trans_param_dec(CMM_AST_NODE* node, struct TCtxParamDec args) {
+tret trans_param_dec(CMM_AST_NODE* node, struct TCtxParamDec args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_ParamDec) cmm_panic("bad ast tree");
@@ -803,7 +820,7 @@ tres trans_param_dec(CMM_AST_NODE* node, struct TCtxParamDec args) {
 
     trans_specifier(specifier, (struct TCtxSpecifier){._void = 0});
 
-    CMM_SEM_TYPE spec_ty = specifier->context.data.type;
+    CMM_SEM_TYPE spec_ty = specifier->trans.type;
 
     trans_var_dec(vardec,
                   (struct TCtxVarDec){
@@ -811,14 +828,16 @@ tres trans_param_dec(CMM_AST_NODE* node, struct TCtxParamDec args) {
                       .where = INSIDE_A_BLOCK,
                   });
 
-    const TransContext* ctx = get_trans_defination(vardec->context.data.ident);
+    const TransContext* ctx = get_trans_defination(vardec->trans.ident);
     *args.ty                = ctx->ty;
-    args.ty->bind           = vardec->context.data.ident;
+    args.ty->bind           = vardec->trans.ident;
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// CompSt: LC DefList StmtList RC
 /// TODO
-tres trans_comp_st(CMM_AST_NODE* node, struct TCtxCompSt args) {
+tret trans_comp_st(CMM_AST_NODE* node, struct TCtxCompSt args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_CompSt) cmm_panic("bad ast tree");
@@ -836,11 +855,13 @@ tres trans_comp_st(CMM_AST_NODE* node, struct TCtxCompSt args) {
     trans_stmt_list(stmtlist, (struct TCtxStmtList){.current_fn_ty = args.current_fn_ty});
 
     exit_trans_scope();
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// StmtList: /* empty */ | Stmt StmtList
 /// TODO
-tres trans_stmt_list(CMM_AST_NODE* root, struct TCtxStmtList args) {
+tret trans_stmt_list(CMM_AST_NODE* root, struct TCtxStmtList args) {
     FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     while (true) {
@@ -848,7 +869,7 @@ tres trans_stmt_list(CMM_AST_NODE* root, struct TCtxStmtList args) {
         if (node->token != CMM_TK_StmtList) cmm_panic("bad ast tree");
 
         if (node->len == 0) {
-
+            break;
         } else if (node->len == 2) {
             // TODO
             // Stmt StmtList
@@ -860,6 +881,8 @@ tres trans_stmt_list(CMM_AST_NODE* root, struct TCtxStmtList args) {
             cmm_panic("bad ast tree");
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 // Stmt: Exp SEMI
@@ -869,7 +892,7 @@ tres trans_stmt_list(CMM_AST_NODE* root, struct TCtxStmtList args) {
 //     | IF LP Exp RP Stmt ELSE Stmt
 //     | WHILE LP Exp RP Stmt
 /// TODO
-tres trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args) {
+tret trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_Stmt) cmm_panic("bad ast tree");
@@ -885,7 +908,7 @@ tres trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args) {
             CMM_AST_NODE* exp = node->nodes + 1;
             trans_exp(exp, (struct TCtxExp){._void = 0});
             CMM_SEM_TYPE need = args.current_fn_ty.inner[args.current_fn_ty.size - 1];
-            CMM_SEM_TYPE got  = exp->context.data.type;
+            CMM_SEM_TYPE got  = exp->trans.type;
             if (!cmm_ty_fitable(need, got)) {
 #ifdef CMM_DEBUG_LAB3TRACE
                 printf("need %s, got %s\n", need.name, got.name);
@@ -904,7 +927,7 @@ tres trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args) {
                 trans_stmt(node->nodes + 6,
                            (struct TCtxStmt){.current_fn_ty = args.current_fn_ty});
             }
-            CMM_SEM_TYPE exp_ty = exp->context.data.type;
+            CMM_SEM_TYPE exp_ty = exp->trans.type;
             if (exp_ty.kind != CMM_ERROR_TYPE && strcmp(exp_ty.name, "int") != 0) {
                 cmm_panic("CMM_SE_OPERAND_TYPE_ERROR");
             }
@@ -915,7 +938,7 @@ tres trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args) {
             trans_exp(exp, (struct TCtxExp){._void = 0});
             trans_stmt(node->nodes + 4,
                        (struct TCtxStmt){.current_fn_ty = args.current_fn_ty});
-            CMM_SEM_TYPE exp_ty = exp->context.data.type;
+            CMM_SEM_TYPE exp_ty = exp->trans.type;
             if (exp_ty.kind != CMM_ERROR_TYPE && strcmp(exp_ty.name, "int") != 0) {
                 cmm_panic("CMM_SE_OPERAND_TYPE_ERROR");
             }
@@ -926,11 +949,13 @@ tres trans_stmt(CMM_AST_NODE* node, struct TCtxStmt args) {
             break;
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// DefList: /* empty */ | Def DefList
 /// TODO
-tres trans_def_list(CMM_AST_NODE* root, struct TCtxDefList args) {
+tret trans_def_list(CMM_AST_NODE* root, struct TCtxDefList args) {
     FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
 
@@ -949,6 +974,7 @@ tres trans_def_list(CMM_AST_NODE* root, struct TCtxDefList args) {
                 free(fields);
             }
 
+            break;
         } else if (node->len == 2) {
             // TODO
             // Def DefList
@@ -962,11 +988,13 @@ tres trans_def_list(CMM_AST_NODE* root, struct TCtxDefList args) {
             cmm_panic("bad ast tree");
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// Def: Specifier DecList SEMI
 /// TODO
-tres trans_def(CMM_AST_NODE* node, struct TCtxDef args) {
+tret trans_def(CMM_AST_NODE* node, struct TCtxDef args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_Def) cmm_panic("bad ast tree");
@@ -979,18 +1007,20 @@ tres trans_def(CMM_AST_NODE* node, struct TCtxDef args) {
 
     trans_specifier(specifier, (struct TCtxSpecifier){._void = 0});
 
-    CMM_SEM_TYPE spec_ty = specifier->context.data.type;
+    CMM_SEM_TYPE spec_ty = specifier->trans.type;
 
     trans_dec_list(declist,
                    (struct TCtxDecList){.ty        = spec_ty,
                                         .where     = args.where,
                                         .fill_into = args.fill_into,
                                         .offset    = args.offset});
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// DecList: Dec | Dec COMMA DecList
 /// TODO
-tres trans_dec_list(CMM_AST_NODE* root, struct TCtxDecList args) {
+tret trans_dec_list(CMM_AST_NODE* root, struct TCtxDecList args) {
     FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
     while (true) {
@@ -1006,16 +1036,18 @@ tres trans_dec_list(CMM_AST_NODE* root, struct TCtxDecList args) {
 
         if (node->len == 1) {
             // Dec
-
+            break;
         } else if (node->len == 3) {
             // Dec COMMA DecList
             node = node->nodes + 2;
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 /// Dec: VarDec | VarDec ASSIGNOP Exp
-tres trans_dec(CMM_AST_NODE* node, struct TCtxDec args) {
+tret trans_dec(CMM_AST_NODE* node, struct TCtxDec args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_Dec) cmm_panic("bad ast tree");
@@ -1025,7 +1057,7 @@ tres trans_dec(CMM_AST_NODE* node, struct TCtxDec args) {
     CMM_AST_NODE* vardec = node->nodes + 0;
     (trans_var_dec(vardec, (struct TCtxVarDec){.where = args.where, .ty = args.ty}));
 
-    args.fill_into[*args.offset] = vardec->context.data.type;
+    args.fill_into[*args.offset] = vardec->trans.type;
     *args.offset                 = *args.offset + 1;
 
     if (node->len == 3) {
@@ -1033,10 +1065,12 @@ tres trans_dec(CMM_AST_NODE* node, struct TCtxDec args) {
         CMM_AST_NODE* exp = node->nodes + 2;
         trans_exp(exp, (struct TCtxExp){._void = 0});
         // 赋值语句的类型检查
-        if (!cmm_ty_fitable(exp->context.data.type, args.ty)) {
+        if (!cmm_ty_fitable(exp->trans.type, args.ty)) {
             cmm_panic("CMM_SE_ASSIGN_TYPE_ERROR");
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 
@@ -1058,14 +1092,13 @@ tres trans_dec(CMM_AST_NODE* node, struct TCtxDec args) {
 //     | ID
 //     | INT
 //     | FLOAT
-tres trans_exp(CMM_AST_NODE* node, struct TCtxExp args) {
+tret trans_exp(CMM_AST_NODE* node, struct TCtxExp args) {
     FUNCTION_TRACE;
     if (node == NULL) cmm_panic("bad ast tree");
     if (node->token != CMM_TK_Exp) cmm_panic("bad ast tree");
 
-    node->context.kind       = CMM_AST_KIND_TYPE;
-    node->context.data.type  = cmm_ty_make_error();
-    node->context.value_kind = RVALUE;
+    node->trans.type       = cmm_ty_make_error();
+    node->trans.value_kind = RVALUE;
 
     CMM_AST_NODE* a = node->nodes + 0;
 
@@ -1074,29 +1107,27 @@ tres trans_exp(CMM_AST_NODE* node, struct TCtxExp args) {
 
         CMM_AST_NODE* op     = node->nodes + 1;
         CMM_AST_NODE* b      = node->nodes + 2;
-        CMM_SEM_TYPE  type_a = a->context.data.type;
+        CMM_SEM_TYPE  type_a = a->trans.type;
 
         /// struct.field
         if (op->token == CMM_TK_DOT) {
-            node->context.value_kind = LVALUE;
+            node->trans.value_kind = LVALUE;
             trans_exp(b, args);
-            CMM_SEM_TYPE type_b = b->context.data.type;
+            CMM_SEM_TYPE type_b = b->trans.type;
 
             switch (op->token) {
-                case CMM_TK_ASSIGNOP: node->context.data.type = type_a; break;
+                case CMM_TK_ASSIGNOP: node->trans.type = type_a; break;
                 case CMM_TK_AND:
-                case CMM_TK_OR: node->context.data.type = type_b; break;
-                case CMM_TK_RELOP:
-                    node->context.data.type = cmm_ty_make_primitive("int");
-                    break;
+                case CMM_TK_OR: node->trans.type = type_b; break;
+                case CMM_TK_RELOP: node->trans.type = cmm_ty_make_primitive("int"); break;
                 case CMM_TK_PLUS:
                 case CMM_TK_MINUS:
                 case CMM_TK_STAR:
-                case CMM_TK_DIV: node->context.data.type = type_b; break;
+                case CMM_TK_DIV: node->trans.type = type_b; break;
                 /// array[idx]
                 case CMM_TK_LB:
-                    node->context.value_kind = LVALUE;
-                    node->context.data.type  = *type_a.inner;
+                    node->trans.value_kind = LVALUE;
+                    node->trans.type       = *type_a.inner;
                     break;
                 default: cmm_panic("bad ast tree");
             }
@@ -1112,16 +1143,16 @@ tres trans_exp(CMM_AST_NODE* node, struct TCtxExp args) {
                     cmm_panic("CMM_SE_UNDEFINED_FUNCTION");
                 }
             } else {
-                node->context.data.type = a_def->ty;
+                node->trans.type = a_def->ty;
             }
 
-            if (node->len == 1) { node->context.value_kind = LVALUE; }
+            if (node->len == 1) { node->trans.value_kind = LVALUE; }
 
             if (a_def->ty.kind != CMM_FUNCTION_TYPE) {
                 cmm_panic("CMM_SE_BAD_FUNCTION_CALL");
             }
 
-            node->context.data.type = a_def->ty.inner[a_def->ty.size - 1];
+            node->trans.type = a_def->ty.inner[a_def->ty.size - 1];
 
             if (node->len == 3) {
                 if (a_def->ty.size != 1) { cmm_panic("CMM_SE_ARGS_NOT_MATCH"); }
@@ -1132,34 +1163,36 @@ tres trans_exp(CMM_AST_NODE* node, struct TCtxExp args) {
         } else if (a->token == CMM_TK_MINUS) {
             CMM_AST_NODE* b = node->nodes + 1;
             trans_exp(b, args);
-            CMM_SEM_TYPE type_b     = b->context.data.type;
-            node->context.data.type = type_b;
+            CMM_SEM_TYPE type_b = b->trans.type;
+            node->trans.type    = type_b;
         } else if (a->token == CMM_TK_NOT) {
             CMM_AST_NODE* b = node->nodes + 1;
             trans_exp(b, args);
-            CMM_SEM_TYPE type_b     = b->context.data.type;
-            node->context.data.type = type_b;
+            CMM_SEM_TYPE type_b = b->trans.type;
+            node->trans.type    = type_b;
         } else if (a->token == CMM_TK_LP) {
             // 括号
             CMM_AST_NODE* b = node->nodes + 1;
             trans_exp(b, args);
-            CMM_SEM_TYPE type_b      = b->context.data.type;
-            node->context.data.type  = type_b;
-            node->context.value_kind = b->context.value_kind;
+            CMM_SEM_TYPE type_b    = b->trans.type;
+            node->trans.type       = type_b;
+            node->trans.value_kind = b->trans.value_kind;
         } else if (a->token == CMM_TK_INT) {
-            node->context.data.type = cmm_ty_make_primitive("int");
+            node->trans.type = cmm_ty_make_primitive("int");
         } else if (a->token == CMM_TK_FLOAT) {
-            node->context.data.type = cmm_ty_make_primitive("float");
+            node->trans.type = cmm_ty_make_primitive("float");
         } else {
             cmm_panic("bad ast tree");
         }
     }
+
+    RETURN_WITH_TRACE(0);
 }
 
 
 // Args: Exp COMMA Args
 //     | Exp
-tres trans_args(CMM_AST_NODE* root, struct TCtxArgs args) {
+tret trans_args(CMM_AST_NODE* root, struct TCtxArgs args) {
     FUNCTION_TRACE;
     CMM_AST_NODE* node = root;
 
@@ -1177,7 +1210,7 @@ tres trans_args(CMM_AST_NODE* root, struct TCtxArgs args) {
 
         trans_exp(param, (struct TCtxExp){._void = 0});
 
-        if (!cmm_ty_fitable(args.calling.inner[i], param->context.data.type)) {
+        if (!cmm_ty_fitable(args.calling.inner[i], param->trans.type)) {
             cmm_panic("CMM_SE_ARGS_NOT_MATCH");
         }
 
@@ -1189,8 +1222,9 @@ tres trans_args(CMM_AST_NODE* root, struct TCtxArgs args) {
         }
     }
 
-    root->context.kind      = CMM_AST_KIND_TYPE;
-    root->context.data.type = args.calling.inner[return_type_idx];
+    root->trans.type = args.calling.inner[return_type_idx];
+
+    RETURN_WITH_TRACE(0);
 }
 
 #pragma endregion
