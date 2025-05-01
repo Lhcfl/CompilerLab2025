@@ -38,7 +38,7 @@ int __trans_trace_spaces = 0;
 #endif
 
 
-typedef struct TransContext {
+typedef struct TransDef {
     int          line;
     char*        name;
     CMM_SEM_TYPE ty;
@@ -47,13 +47,13 @@ typedef struct TransContext {
         TRANS_CTX_VAR,
     } kind;
     CMM_IR_VAR ir_var;
-} TransContext;
+} TransDef;
 
 typedef struct TransScope {
     char*              name;
     struct TransScope* back;
     struct TransScope* data;
-    TransContext*      ctx;
+    TransDef*          ctx;
 } TransScope;
 
 enum VAR_WHERE {
@@ -148,7 +148,7 @@ typedef struct TretVarDec {
     CMM_SEM_TYPE type;
 } TretVarDec;
 
-const TransContext* get_trans_defination(const char* name);
+const TransDef* get_trans_defination(const char* name);
 
 tret       trans_program(CMM_AST_NODE* node, struct TargProgram args);
 tret       trans_ext_def_list(CMM_AST_NODE* node, struct TargExtDefList args);
@@ -186,20 +186,20 @@ TransScope*     root_trans_scope = NULL;
 
 void free_trans_ctx(void* data) {
     // if (data == NULL) return;
-    // const TransContext* ctx = data;
+    // const TransDef* ctx = data;
     // free(ctx->name);
     (void)data;
 }
 
 int trans_ctx_compare(const void* a, const void* b, void* _udata) {
-    const TransContext* ua = a;
-    const TransContext* ub = b;
+    const TransDef* ua = a;
+    const TransDef* ub = b;
     (void)(_udata);
     return strcmp(ua->name, ub->name);
 }
 
 uint64_t trans_ctx_hash(const void* item, uint64_t seed0, uint64_t seed1) {
-    const TransContext* ctx = item;
+    const TransDef* ctx = item;
     return hashmap_sip(ctx->name, strlen(ctx->name), seed0, seed1);
 }
 
@@ -235,8 +235,8 @@ void __force_exit_trans_scope() {
     // 释放当前作用域的所有定义
     TransScope* ptr = trans_scope->data;
     while (ptr != NULL) {
-        TransContext* deleted = (TransContext*)hashmap_delete(
-            trans_context, &(TransContext){.name = ptr->name});
+        TransDef* deleted =
+            (TransDef*)hashmap_delete(trans_context, &(TransDef){.name = ptr->name});
 
         // if (deleted->def == TRANS_CTX_DECLARE) {
         //     cmm_panic("function is declared but not defined");
@@ -283,17 +283,17 @@ char* _trans_ctx_finder(const char* name, TransScope* scope) {
 }
 
 /// 在当前作用域下产生一个新的定义或声明
-void push_trans_context(TransContext arg) {
+void push_trans_def(TransDef arg) {
     char* varname = _trans_ctx_finder(arg.name, trans_scope);
 
     // 检查是否存在这个def
-    TransContext* existed =
-        (TransContext*)hashmap_get(trans_context, &(TransContext){.name = varname});
+    TransDef* existed =
+        (TransDef*)hashmap_get(trans_context, &(TransDef){.name = varname});
 
     if (existed != NULL) cmm_panic("defined again %s : %s", varname, arg.ty.name);
 
     /// 变量的名字不能和类型一样
-    const TransContext* existed_rec = get_trans_defination(arg.name);
+    const TransDef* existed_rec = get_trans_defination(arg.name);
     if (existed_rec != NULL && existed_rec->kind == TRANS_CTX_TYPE &&
         arg.kind == TRANS_CTX_VAR)
         cmm_panic("var name is same as type name %s : %s", varname, existed_rec->ty.name);
@@ -302,9 +302,9 @@ void push_trans_context(TransContext arg) {
     printf("\033[1;33m[defined] %s : %s\033[0m\n", varname, arg.ty.name);
 #endif
 
-    TransContext* allo_ctx = (TransContext*)malloc(sizeof(TransContext));
-    *allo_ctx              = arg;
-    allo_ctx->name         = varname;
+    TransDef* allo_ctx = (TransDef*)malloc(sizeof(TransDef));
+    *allo_ctx          = arg;
+    allo_ctx->name     = varname;
     hashmap_set(trans_context, allo_ctx);
 
     TransScope* def   = (TransScope*)malloc(sizeof(TransScope));
@@ -315,16 +315,16 @@ void push_trans_context(TransContext arg) {
 }
 
 /// 在当前作用域，和它的上n级，获取一个定义
-const TransContext* get_trans_defination(const char* name) {
-    const TransContext* ret   = NULL;
-    TransScope*         scope = trans_scope;
+const TransDef* get_trans_defination(const char* name) {
+    const TransDef* ret   = NULL;
+    TransScope*     scope = trans_scope;
 
     while (ret == NULL && scope != NULL) {
         char* varname = _trans_ctx_finder(name, scope);
         // #ifdef CMM_DEBUG_LAB3TRACE
         //         printf("[search] finding %s\n", varname);
         // #endif
-        ret           = hashmap_get(trans_context, &(TransContext){.name = varname});
+        ret           = hashmap_get(trans_context, &(TransDef){.name = varname});
         free(varname);
         scope = scope->back;
     }
@@ -345,7 +345,7 @@ const TransContext* get_trans_defination(const char* name) {
 
 int cmm_trans_code(CMM_AST_NODE* node) {
     // prepare
-    trans_context = hashmap_new(sizeof(TransContext),
+    trans_context = hashmap_new(sizeof(TransDef),
                                 65535,
                                 0,
                                 0,
@@ -358,7 +358,7 @@ int cmm_trans_code(CMM_AST_NODE* node) {
     root_trans_scope = trans_scope;
 
     // read: () -> int
-    push_trans_context((TransContext){
+    push_trans_def((TransDef){
         .kind = TRANS_CTX_VAR,
         .name = cmm_clone_string("read"),
         .ty   = cmm_create_function_type(1, "int"),
@@ -366,7 +366,7 @@ int cmm_trans_code(CMM_AST_NODE* node) {
     });
 
     // write: int -> int
-    push_trans_context((TransContext){
+    push_trans_def((TransDef){
         .kind = TRANS_CTX_VAR,
         .name = cmm_clone_string("write"),
         .ty   = cmm_create_function_type(2, "int", "int"),
@@ -547,7 +547,7 @@ tret trans_struct_specifier(CMM_AST_NODE* node, struct TargStructSpecifier _) {
 
     if (node->len == 2) {
         trans_tag(tag, (struct TargTag){._void = 0});
-        const TransContext* ctx = get_trans_defination(tag->trans.ident);
+        const TransDef* ctx = get_trans_defination(tag->trans.ident);
         if (ctx == NULL) {
             node->trans.type = cmm_ty_make_error();
             cmm_panic("CMM_SE_UNDEFINED_STRUCT");
@@ -585,7 +585,7 @@ tret trans_struct_specifier(CMM_AST_NODE* node, struct TargStructSpecifier _) {
         TransScope* current_scope = trans_scope;
         trans_scope               = root_trans_scope;
 
-        push_trans_context((TransContext){
+        push_trans_def((TransDef){
             .kind = TRANS_CTX_TYPE,
             .name = name,
             .ty   = ty,
@@ -652,7 +652,7 @@ TretVarDec trans_var_dec(CMM_AST_NODE* node, struct TargVarDec args) {
         args.ty.bind      = id;
         CMM_IR_VAR ir_var = ir_new_var();
 
-        push_trans_context((TransContext){
+        push_trans_def((TransDef){
             .kind   = TRANS_CTX_VAR,
             .name   = id,
             .ty     = args.ty,
@@ -726,7 +726,7 @@ tret trans_fun_dec(CMM_AST_NODE* node, struct TargFunDec args) {
         TransScope* current_scope = trans_scope;
         trans_scope               = parent_trans_scope(trans_scope);
 
-        push_trans_context((TransContext){
+        push_trans_def((TransDef){
             .line = id->location.line,
             .kind = TRANS_CTX_VAR,
             .name = func_name,
@@ -797,9 +797,9 @@ tret trans_param_dec(CMM_AST_NODE* node, struct TargParamDec args) {
 
     gen_ir_param(var.bind);
 
-    const TransContext* ctx = get_trans_defination(var.varname);
-    *args.ty                = ctx->ty;
-    args.ty->bind           = vardec->trans.ident;
+    const TransDef* ctx = get_trans_defination(var.varname);
+    *args.ty            = ctx->ty;
+    args.ty->bind       = vardec->trans.ident;
 
     RETURN_WITH_TRACE(0);
 }
@@ -1107,8 +1107,8 @@ tret trans_exp(CMM_AST_NODE* node, struct TargExp args) {
             }
         }
     } else if (a->token == CMM_TK_ID) {
-        const char*         a_name = a->data.val_ident;
-        const TransContext* a_def  = get_trans_defination(a_name);
+        const char*     a_name = a->data.val_ident;
+        const TransDef* a_def  = get_trans_defination(a_name);
 
         if (a_def == NULL) {
             if (node->len == 1) {
