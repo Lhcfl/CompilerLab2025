@@ -18,6 +18,22 @@
         exit(1);                                                                    \
     }
 
+#define COLOR_EMPTY "\033[0m"
+#define COLOR_RED "\033[1;31m"
+#define COLOR_GREEN "\033[1;32m"
+#define COLOR_YELLOW "\033[1;33m"
+#define COLOR_BLUE "\033[1;34m"
+#define COLOR_MAGENTA "\033[1;35m"
+#define COLOR_CYAN "\033[1;36m"
+#define COLOR_WHITE "\033[1;37m"
+
+#define cmm_debug(color, ...) \
+    {                         \
+        printf(color);        \
+        printf(__VA_ARGS__);  \
+        printf(COLOR_EMPTY);  \
+    }
+
 extern int yylex(void);
 extern int fileno(FILE*);
 
@@ -161,4 +177,6 @@ int           cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
 CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field);
 char*         gen_unnamed_struct_name();
 void          cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel);
+CMM_SEM_TYPE  cmm_create_function_type(int size, ...);
+
 #endif

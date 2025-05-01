@@ -41,13 +41,9 @@ typedef struct TransContext {
     int          line;
     char*        name;
     CMM_SEM_TYPE ty;
-    enum {
-        SEM_CTX_DEFINATION,
-        SEM_CTX_DECLARE,
-    } def;
     enum SemContextKind {
-        SEM_CTX_TYPE,
-        SEM_CTX_VAR,
+        TRANS_CTX_TYPE,
+        TRANS_CTX_VAR,
     } kind;
 } TransContext;
 
@@ -234,9 +230,9 @@ void __force_exit_trans_scope() {
         TransContext* deleted = (TransContext*)hashmap_delete(
             trans_context, &(TransContext){.name = ptr->name});
 
-        if (deleted->def == SEM_CTX_DECLARE) {
-            cmm_panic("function is declared but not defined");
-        }
+        // if (deleted->def == TRANS_CTX_DECLARE) {
+        //     cmm_panic("function is declared but not defined");
+        // }
 
         if (deleted != NULL) { free_trans_ctx(deleted); }
 
@@ -282,7 +278,7 @@ char* _trans_ctx_finder(const char* name, TransScope* scope) {
 /// @returns 1 成功
 /// @returns 0 失败
 /// @returns -1 函数不匹配
-int gen_trans_context(TransContext arg) {
+int push_trans_context(TransContext arg) {
     char* varname = _trans_ctx_finder(arg.name, trans_scope);
 
     // 检查是否存在这个def
@@ -291,38 +287,21 @@ int gen_trans_context(TransContext arg) {
 
     if (existed != NULL) {
 #ifdef CMM_DEBUG_LAB3TRACE
-        if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE)
-            printf("\033[1;33m[register] %s %s : %s\033[0m\n",
-                   arg.def == SEM_CTX_DECLARE ? "dec" : "def",
-                   varname,
-                   arg.ty.name);
-        else
-            printf("\033[1;43mERROR [register again] %s %s : %s\033[0m\n",
-                   arg.def == SEM_CTX_DECLARE ? "dec" : "def",
-                   varname,
-                   arg.ty.name);
+        printf("\033[1;43mERROR [defined again] %s : %s\033[0m\n", varname, arg.ty.name);
 #endif
         free(varname);
-        if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE) {
-            int ret = cmm_ty_eq(existed->ty, arg.ty);
-            if (ret == 1 && existed->def == SEM_CTX_DECLARE) { existed->def = arg.def; }
-            return ret == 0 ? -1 : 1;
-        }
         return 0;
     }
 
     /// 变量的名字不能和类型一样
     const TransContext* existed_rec = get_trans_defination(arg.name);
-    if (existed_rec != NULL && existed_rec->kind == SEM_CTX_TYPE &&
-        arg.kind == SEM_CTX_VAR) {
+    if (existed_rec != NULL && existed_rec->kind == TRANS_CTX_TYPE &&
+        arg.kind == TRANS_CTX_VAR) {
         return 0;
     }
 
 #ifdef CMM_DEBUG_LAB3TRACE
-    printf("\033[1;33m[register] %s %s : %s\033[0m\n",
-           arg.def == SEM_CTX_DECLARE ? "dec" : "def",
-           varname,
-           arg.ty.name);
+    printf("\033[1;33m[defined] %s : %s\033[0m\n", varname, arg.ty.name);
 #endif
 
     TransContext* allo_ctx = (TransContext*)malloc(sizeof(TransContext));
@@ -346,23 +325,21 @@ const TransContext* get_trans_defination(const char* name) {
 
     while (ret == NULL && scope != NULL) {
         char* varname = _trans_ctx_finder(name, scope);
-#ifdef CMM_DEBUG_LAB3TRACE
-        printf("[search] finding %s\n", varname);
-#endif
-        ret = hashmap_get(trans_context, &(TransContext){.name = varname});
+        // #ifdef CMM_DEBUG_LAB3TRACE
+        //         printf("[search] finding %s\n", varname);
+        // #endif
+        ret           = hashmap_get(trans_context, &(TransContext){.name = varname});
         free(varname);
         scope = scope->back;
     }
 
-    if (ret == NULL) {}
-
-#ifdef CMM_DEBUG_LAB3TRACE
-    if (ret == NULL) {
-        printf("[search] not found\n");
-    } else {
-        printf("[search] found: ty = %s\n", ret->ty.name);
-    }
-#endif
+    // #ifdef CMM_DEBUG_LAB3TRACE
+    //     if (ret == NULL) {
+    //         printf("[search] not found\n");
+    //     } else {
+    //         printf("[search] found: ty = %s\n", ret->ty.name);
+    //     }
+    // #endif
 
     return ret;
 }
@@ -380,8 +357,25 @@ int cmm_trans_code(CMM_AST_NODE* node) {
                                 trans_ctx_compare,
                                 free_trans_ctx,
                                 NULL);
+
     enter_trans_scope("root");
     root_trans_scope = trans_scope;
+
+    // read: () -> int
+    push_trans_context((TransContext){
+        .kind = TRANS_CTX_VAR,
+        .name = cmm_clone_string("read"),
+        .ty   = cmm_create_function_type(1, "int"),
+        .line = 0,
+    });
+
+    // write: int -> int
+    push_trans_context((TransContext){
+        .kind = TRANS_CTX_VAR,
+        .name = cmm_clone_string("write"),
+        .ty   = cmm_create_function_type(2, "int", "int"),
+        .line = 0,
+    });
 
     /// analyze
     trans_program(node, (struct TCtxProgram){._void = 0});
@@ -450,10 +444,6 @@ tret trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
 
     CMM_SEM_TYPE spec_ty = specifier->trans.type;
 
-#ifdef CMM_DEBUG_LAB3TRACE
-    printf("type is %s\n", spec_ty.name);
-#endif
-
     if (decl->token == CMM_TK_ExtDecList) {
         /// 变量定义
         trans_ext_dec_list(decl, (struct TCtxExtDecList){.ty = spec_ty});
@@ -468,7 +458,7 @@ tret trans_ext_def(CMM_AST_NODE* node, struct TCtxExtDef _) {
         if (is_def) {
             enter_trans_scope(fn_name);
         } else {
-            __force_enter_trans_scope(fn_name);
+            cmm_panic("lab3 does not support function declaration");
         }
 
         trans_fun_dec(decl,
@@ -598,9 +588,8 @@ tret trans_struct_specifier(CMM_AST_NODE* node, struct TCtxStructSpecifier _) {
         /// struct 会被提升到顶层
         TransScope* current_scope = trans_scope;
         trans_scope               = root_trans_scope;
-        int ok                    = gen_trans_context((TransContext){
-                               .def  = SEM_CTX_DEFINATION,
-                               .kind = SEM_CTX_TYPE,
+        int ok                    = push_trans_context((TransContext){
+                               .kind = TRANS_CTX_TYPE,
                                .name = name,
                                .ty   = ty,
         });
@@ -665,9 +654,8 @@ tret trans_var_dec(CMM_AST_NODE* node, struct TCtxVarDec args) {
         node->trans.ident = node->nodes->data.val_ident;
         /// 注册这个变量
         args.ty.bind      = node->trans.ident;
-        int ok            = gen_trans_context((TransContext){
-                       .def  = SEM_CTX_DEFINATION,
-                       .kind = SEM_CTX_VAR,
+        int ok            = push_trans_context((TransContext){
+                       .kind = TRANS_CTX_VAR,
                        .name = node->nodes->data.val_ident,
                        .ty   = args.ty,
         });
@@ -744,31 +732,16 @@ tret trans_fun_dec(CMM_AST_NODE* node, struct TCtxFunDec args) {
         /// 先修改当前作用域，然后再恢复
         TransScope* current_scope = trans_scope;
         trans_scope               = parent_trans_scope(trans_scope);
-        int ret                   = gen_trans_context((TransContext){
+        int ret                   = push_trans_context((TransContext){
                               .line = id->location.line,
-                              .def  = args.is_def ? SEM_CTX_DEFINATION : SEM_CTX_DECLARE,
-                              .kind = SEM_CTX_VAR,
+                              .kind = TRANS_CTX_VAR,
                               .name = id_name,
                               .ty   = fnty,
         });
         trans_scope               = current_scope;
 
         if (ret == -1) { cmm_panic("CMM_SE_CONFLICT_FUNCTION_DECLARATION"); }
-        if (ret == 0) {
-            if (args.is_def) {
-                /// 父作用域定义重复，为了继续分析 comst，我们再
-                /// push一个defination到子作用域
-                gen_trans_context((TransContext){
-                    .def  = SEM_CTX_DEFINATION,
-                    .kind = SEM_CTX_VAR,
-                    .name = id_name,
-                    .ty   = fnty,
-                });
-                cmm_panic("CMM_SE_DUPLICATE_FUNCTION_DEFINATION");
-            } else {
-                cmm_panic("CMM_SE_CONFLICT_FUNCTION_DECLARATION");
-            }
-        }
+        if (ret == 0) { cmm_panic("dumplicate function defination"); }
     }
 
     RETURN_WITH_TRACE(0);
@@ -1135,19 +1108,21 @@ tret trans_exp(CMM_AST_NODE* node, struct TCtxExp args) {
             }
         }
     } else if (a->token == CMM_TK_ID) {
-#ifdef CMM_DEBUG_LAB3TRACE
-        printf("[search] will find %s\n", a->data.val_ident);
-#endif
-        const TransContext* a_def = get_trans_defination(a->data.val_ident);
+        const char*         a_name = a->data.val_ident;
+        const TransContext* a_def  = get_trans_defination(a_name);
 
         if (a_def == NULL) {
             if (node->len == 1) {
-                cmm_panic("CMM_SE_UNDEFINED_VARIABLE");
+                cmm_panic("variable %s is not fount", a_name);
             } else {
-                cmm_panic("CMM_SE_UNDEFINED_FUNCTION");
+                cmm_panic("function %s is not fount", a_name);
             }
         } else {
             node->trans.type = a_def->ty;
+
+#ifdef CMM_DEBUG_LAB3TRACE
+            cmm_debug(COLOR_MAGENTA, "// %s : %s\n", a_name, a_def->ty.name);
+#endif
         }
 
         if (node->len == 1) {

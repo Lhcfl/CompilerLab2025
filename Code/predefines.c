@@ -235,13 +235,15 @@ char* cmm_ty_make_array_typename(CMM_SEM_TYPE ty) {
 
 /// @returns arg -> arg -> arg -> ... -> ret
 char* cmm_ty_make_fn_typename(CMM_SEM_TYPE ty) {
-    size_t len = 0;
+    size_t len = 8;
     for (int i = 0; i < ty.size; i++) {
         len += strlen(ty.inner[i].name);
         len += 4;   // 4 for " -> "
     }
-    char* ret    = malloc(sizeof(char) * (len + 3));
-    int   offset = 0;
+    char* ret = malloc(sizeof(char) * (len + 3));
+    ret[0]    = 0;
+    if (ty.size == 1) { strcpy(ret, "() -> "); }
+    int offset = strlen(ret);
     for (int i = 0; i < ty.size; i++) {
         strcpy(ret + offset, ty.inner[i].name);
         offset += strlen(ty.inner[i].name);
@@ -289,6 +291,28 @@ CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size) {
     ret.inner = inner;
     ret.bind  = NULL;
     ret.name  = cmm_ty_make_fn_typename(ret);
+    return ret;
+}
+
+/// usage: cmm_create_function_type(2, "int", "float"); => int -> float
+/// usage: cmm_create_function_type(1, "int"); => () -> float
+CMM_SEM_TYPE cmm_create_function_type(int size, ...) {
+    va_list args;
+    va_start(args, size);
+
+    CMM_SEM_TYPE ret;
+    ret.kind  = CMM_FUNCTION_TYPE;
+    ret.size  = size;
+    ret.inner = malloc(sizeof(CMM_SEM_TYPE) * size);
+
+    for (int i = 0; i < size; i++) {
+        char* typename = va_arg(args, char*);
+        ret.inner[i]   = cmm_ty_make_primitive(typename);
+    }
+    va_end(args);
+
+    ret.bind = NULL;
+    ret.name = cmm_ty_make_fn_typename(ret);
     return ret;
 }
 
