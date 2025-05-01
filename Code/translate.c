@@ -901,7 +901,7 @@ tret trans_stmt(CMM_AST_NODE* node, struct TargStmt args) {
             CMM_AST_NODE* exp      = node->nodes + 2;
             TretExp       check = trans_exp(exp, (struct TargExp){._void = 0});
 
-            gen_ir_if_goto(check.bind, ir_new_immediate_int(0), "!=", lbl_else);
+            gen_ir_if_goto(check.bind, ir_new_immediate_int(0), "==", lbl_else);
 
             gen_ir_label_start(lbl_then);
 
@@ -1062,11 +1062,9 @@ tret trans_dec(CMM_AST_NODE* node, struct TargDec args) {
             cmm_panic("CMM_SE_BAD_STRUCT_DOMAIN");
         }
         CMM_AST_NODE* exp = node->nodes + 2;
-        trans_exp(exp, (struct TargExp){._void = 0});
-        // 赋值语句的类型检查
-        if (!cmm_ty_fitable(exp->trans.type, args.ty)) {
-            cmm_panic("CMM_SE_ASSIGN_TYPE_ERROR");
-        }
+        TretExp       ret = trans_exp(exp, (struct TargExp){._void = 0});
+
+        gen_ir_assign(ret_vardec.bind, ret.bind);
     }
 
     RETURN_WITH_TRACE(0);

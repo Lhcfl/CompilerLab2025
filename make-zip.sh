@@ -6,6 +6,8 @@ ZIP_NAME="submit.zip"
 # 需要排除的文件/文件夹
 EXCLUDE_LIST=(
     ".git"
+    "irsim"
+    "*.o"
 )
 
 # 组合排除参数
