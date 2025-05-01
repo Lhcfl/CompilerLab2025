@@ -1,3 +1,4 @@
+#include "ir.h"
 #include "predefines.h"
 #include "globals.h"
 #include "semantic.h"
@@ -32,7 +33,9 @@ void cmm_print_node(CMM_AST_NODE* val, int indent) {
             break;
         }
         case CMM_AST_NODE_TREE: {
-            printf("%s (%d)\n", cmm_token_tostring(val->token), val->location.line);
+            printf("%s (%d)\n",
+                   cmm_token_tostring(val->token),
+                   val->location.line);
             for (int i = 0; i < val->len; i++) {
                 cmm_print_node(val->nodes + i, indent + 2);
             }
@@ -87,5 +90,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
+    FILE* ir = fopen(argv[2], "w");
+    ir_set_print_to(ir);
     cmm_trans_code(&cmm_parsed_root);
 }

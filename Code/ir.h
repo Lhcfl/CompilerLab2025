@@ -1,6 +1,7 @@
 #ifndef LINCA_BYYL_IR_H
 #define LINCA_BYYL_IR_H
 
+#include <stdio.h>
 enum CMM_IR_VAR_KIND {
     IR_VARIABLE,
     IR_IMMEDIATE_INT,
@@ -70,5 +71,7 @@ void gen_ir_param(CMM_IR_VAR x);
 void gen_ir_read(CMM_IR_VAR x);
 /// WRITE x
 void gen_ir_write(CMM_IR_VAR x);
+
+void ir_set_print_to(FILE* fp);
 
 #endif

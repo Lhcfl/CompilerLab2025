@@ -343,9 +343,10 @@ const TransDef* get_trans_defination(const char* name) {
         scope = scope->back;
     }
 
-#ifdef CMM_DEBUG_LAB3TRACE
-    if (ret == NULL) { cmm_debug(COLOR_CYAN, "[search] %s not found\n", name); }
-#endif
+    // #ifdef CMM_DEBUG_LAB3TRACE
+    //     if (ret == NULL) { cmm_debug(COLOR_CYAN, "[search] %s not found\n",
+    //     name); }
+    // #endif
 
     return ret;
 }
@@ -889,46 +890,50 @@ tret trans_stmt(CMM_AST_NODE* node, struct TargStmt args) {
             break;
         case CMM_TK_RETURN: {
             CMM_AST_NODE* exp = node->nodes + 1;
-            trans_exp(exp, (struct TargExp){._void = 0});
-            CMM_SEM_TYPE need =
-                args.current_fn_ty.inner[args.current_fn_ty.size - 1];
-            CMM_SEM_TYPE got = exp->trans.type;
-            if (!cmm_ty_fitable(need, got)) {
-#ifdef CMM_DEBUG_LAB3TRACE
-                printf("need %s, got %s\n", need.name, got.name);
-#endif
-                cmm_panic("CMM_SE_RETURN_TYPE_ERROR")
-            }
+            TretExp       ret = trans_exp(exp, (struct TargExp){._void = 0});
+            gen_ir_return(ret.bind);
             break;
         }
         case CMM_TK_IF: {
-            CMM_AST_NODE* exp = node->nodes + 2;
-            trans_exp(exp, (struct TargExp){._void = 0});
+            CMM_IR_LABEL  lbl_then = ir_new_label("then");
+            CMM_IR_LABEL  lbl_else = ir_new_label("else");
+            CMM_IR_LABEL  lbl_nxt  = ir_new_label("nxt");
+            CMM_AST_NODE* exp      = node->nodes + 2;
+            TretExp       check = trans_exp(exp, (struct TargExp){._void = 0});
+
+            gen_ir_if_goto(check.bind, ir_new_immediate_int(0), "!=", lbl_else);
+
+            gen_ir_label_start(lbl_then);
+
             trans_stmt(node->nodes + 4,
                        (struct TargStmt){.current_fn_ty = args.current_fn_ty});
+
+            gen_ir_goto(lbl_nxt);
+
+            gen_ir_label_start(lbl_else);
+
             if (node->len == 7) {
                 // IF LP Exp RP Stmt ELSE Stmt
                 trans_stmt(
                     node->nodes + 6,
                     (struct TargStmt){.current_fn_ty = args.current_fn_ty});
             }
-            CMM_SEM_TYPE exp_ty = exp->trans.type;
-            if (exp_ty.kind != CMM_ERROR_TYPE &&
-                strcmp(exp_ty.name, "int") != 0) {
-                cmm_panic("CMM_SE_OPERAND_TYPE_ERROR");
-            }
+
+            gen_ir_label_start(lbl_nxt);
             break;
         }
         case CMM_TK_WHILE: {
-            CMM_AST_NODE* exp = node->nodes + 2;
-            trans_exp(exp, (struct TargExp){._void = 0});
+            CMM_IR_LABEL  lbl_body = ir_new_label("while");
+            CMM_IR_LABEL  lbl_nxt  = ir_new_label("nxt");
+            CMM_AST_NODE* exp      = node->nodes + 2;
+            TretExp       check = trans_exp(exp, (struct TargExp){._void = 0});
+
+            gen_ir_if_goto(check.bind, ir_new_immediate_int(0), "==", lbl_nxt);
             trans_stmt(node->nodes + 4,
                        (struct TargStmt){.current_fn_ty = args.current_fn_ty});
-            CMM_SEM_TYPE exp_ty = exp->trans.type;
-            if (exp_ty.kind != CMM_ERROR_TYPE &&
-                strcmp(exp_ty.name, "int") != 0) {
-                cmm_panic("CMM_SE_OPERAND_TYPE_ERROR");
-            }
+
+            gen_ir_goto(lbl_body);
+            gen_ir_label_start(lbl_nxt);
             break;
         }
         default: {

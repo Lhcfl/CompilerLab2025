@@ -5,3 +5,4 @@ lex.yy.c
 syntax.*
 !syntax.y
 *.zip
+/*.ir
