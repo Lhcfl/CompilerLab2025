@@ -9,6 +9,15 @@
 #define CMM_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CMM_MAX(a, b) ((a) > (b) ? (a) : (b))
 
+
+#define cmm_panic(...)                                                      \
+    {                                                                       \
+        printf("\033[1;31m In %s (Line %d) [PAINC]: ", __func__, __LINE__); \
+        printf(__VA_ARGS__);                                                \
+        printf("\033[0m\n");                                                \
+        exit(1);                                                            \
+    }
+
 extern int yylex(void);
 extern int fileno(FILE*);
 

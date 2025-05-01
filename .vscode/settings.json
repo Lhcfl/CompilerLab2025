@@ -1,10 +1,14 @@
 {
   // "editor.fontFamily": "'Twilio Sans Mono', LXGW Wenkai Mono, mononoki, monospace",
   // "editor.fontFamily": "'CodeNewRoman Nerd Font', LXGW Wenkai Mono, mononoki, monospace",
-  "editor.fontFamily": "'Maple Mono NF CN', LXGW Wenkai Mono, mononoki, monospace",
+  // "editor.fontFamily": "'Maple Mono NF CN', LXGW Wenkai Mono, mononoki, monospace",
+  "editor.fontFamily": "'Fira Code', LXGW Wenkai Mono, mononoki, monospace",
   // "editor.fontFamily": "'0xProto', LXGW Wenkai Mono, mononoki, monospace",
   "editor.fontWeight": "400",
-  "editor.fontLigatures": "'calt' 1, 'cv01', 'cv02', 'cv03' 1, 'ss03'",
+  // Maple Mono
+  // "editor.fontLigatures": "'calt' 1, 'cv01', 'cv02', 'cv03' 1, 'ss03'",
+  // Fira Code
+  "editor.fontLigatures": "'calt', 'cv02', 'cv06', 'cv31', 'ss08'",
   "editor.formatOnSave": true,
   "editor.tabSize": 4
 }
