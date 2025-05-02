@@ -1220,7 +1220,27 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 if (!a.is_ident) {
                     gen_ir_put_into_addr(a.addr, b.bind);
                 } else {
-                    gen_ir_assign(a.bind, b.bind);
+                    if (a.type.kind == CMM_ARRAY_TYPE) {
+                        CMM_IR_VAR ptr_a = ir_new_tmpvar();
+                        CMM_IR_VAR ptr_b = ir_new_tmpvar();
+                        CMM_IR_VAR val_b = ir_new_tmpvar();
+                        gen_ir_get_addr(ptr_a, a.bind);
+                        gen_ir_get_addr(ptr_b, b.bind);
+                        for (int i = 0; i < a.type.size; i++) {
+                            gen_ir_dereference(val_b, ptr_b);
+                            gen_ir_put_into_addr(ptr_a, val_b);
+                            gen_ir_add(
+                                ptr_a,
+                                ptr_a,
+                                ir_new_immediate_int(4 * a.type.inner->bytes4));
+                            gen_ir_add(
+                                ptr_b,
+                                ptr_b,
+                                ir_new_immediate_int(4 * a.type.inner->bytes4));
+                        }
+                    } else {
+                        gen_ir_assign(a.bind, b.bind);
+                    }
                 }
 
                 RETURN_WITH_TRACE(ret);
