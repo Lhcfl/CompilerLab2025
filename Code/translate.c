@@ -1162,8 +1162,9 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
     CMM_AST_NODE* node_a = node->nodes + 0;
 
     TretExp ret;
-    ret.is_ident = false;
-    ret.vkind    = RVALUE;
+    ret.is_ident       = false;
+    ret.is_struct_addr = false;
+    ret.vkind          = RVALUE;
 
     if (node_a->token == CMM_TK_Exp) {
         TretExp a = trans_exp(node_a, args);
@@ -1189,6 +1190,8 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 #endif
             if (a.is_struct_addr) {
                 gen_ir_assign(a_addr, a.bind);
+            } else if (!a.is_ident) {
+                gen_ir_assign(a_addr, a.addr);
             } else {
                 gen_ir_get_addr(a_addr, a.bind);
             }
@@ -1307,12 +1310,7 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
             }
             /// array[idx]
             case CMM_TK_LB: {
-                TretExp b = trans_exp(node_b, args);
-                if (!a.is_ident) {
-                    cmm_panic("Cannot translate: Code contains variables of "
-                              "multi-dimensional array type or parameters of "
-                              "array type. ");
-                }
+                TretExp b    = trans_exp(node_b, args);
                 ret.vkind    = LVALUE;
                 ret.type     = *a.type.inner;
                 ret.bind     = ir_new_tmpvar();
@@ -1323,7 +1321,8 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 ret.addr          = ir_new_tmpvar();
                 CMM_IR_VAR offset = ir_new_tmpvar();
 
-                gen_ir_mul(offset, b.bind, ir_new_immediate_int(4));
+                gen_ir_mul(
+                    offset, b.bind, ir_new_immediate_int(ret.type.bytes4 * 4));
 
                 gen_ir_add(ret.addr, arr_addr, offset);
                 gen_ir_dereference(ret.bind, ret.addr);
