@@ -1149,7 +1149,8 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
     CMM_AST_NODE* node_a = node->nodes + 0;
 
     TretExp ret;
-    ret.vkind = RVALUE;
+    ret.is_ident = false;
+    ret.vkind    = RVALUE;
 
     if (node_a->token == CMM_TK_Exp) {
         TretExp a = trans_exp(node_a, args);
@@ -1171,11 +1172,18 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 ret.type  = b.type;
                 ret.bind  = a.bind;
 
-                if (!a.is_ident && a.vkind == LVALUE) {
+#ifdef CMM_DEBUG_LAB3TRACE
+                cmm_debug(COLOR_MAGENTA,
+                          "// assign %s\n",
+                          a.is_ident ? "ident" : "arr");
+#endif
+
+                if (!a.is_ident) {
                     gen_ir_put_into_addr(a.addr, b.bind);
                 } else {
                     gen_ir_assign(a.bind, b.bind);
                 }
+
                 RETURN_WITH_TRACE(ret);
             case CMM_TK_AND: {
                 ret.type = b.type;
@@ -1236,9 +1244,10 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                               "multi-dimensional array type or parameters of "
                               "array type. ");
                 }
-                ret.vkind = LVALUE;
-                ret.type  = *a.type.inner;
-                ret.bind  = ir_new_tmpvar();
+                ret.vkind    = LVALUE;
+                ret.type     = *a.type.inner;
+                ret.bind     = ir_new_tmpvar();
+                ret.is_ident = false;
 
                 CMM_IR_VAR arr_addr = ir_new_tmpvar();
                 gen_ir_get_addr(arr_addr, a.bind);

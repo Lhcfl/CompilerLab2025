@@ -6,3 +6,4 @@ syntax.*
 !syntax.y
 *.zip
 /*.ir
+/*.cmm
