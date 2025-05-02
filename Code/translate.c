@@ -1185,10 +1185,9 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
             RETURN_WITH_TRACE(ret);
         }
 
-        TretExp b = trans_exp(node_b, args);
-
         switch (op->token) {
-            case CMM_TK_ASSIGNOP:
+            case CMM_TK_ASSIGNOP: {
+                TretExp b = trans_exp(node_b, args);
                 ret.vkind = LVALUE;
                 ret.type  = b.type;
                 ret.bind  = b.bind;
@@ -1206,8 +1205,9 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 }
 
                 RETURN_WITH_TRACE(ret);
+            }
             case CMM_TK_AND: {
-                ret.type = b.type;
+                ret.type = a.type;
                 ret.bind = ir_new_tmpvar();
 
                 CMM_IR_LABEL lbl_ret_false = ir_new_label("is_false");
@@ -1215,6 +1215,8 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 
                 gen_ir_if_goto(
                     a.bind, ir_new_immediate_int(0), "==", lbl_ret_false);
+
+                TretExp b = trans_exp(node_b, args);
 
                 gen_ir_if_goto(
                     b.bind, ir_new_immediate_int(0), "==", lbl_ret_false);
@@ -1230,7 +1232,7 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 RETURN_WITH_TRACE(ret);
             }
             case CMM_TK_OR: {
-                ret.type = b.type;
+                ret.type = a.type;
                 ret.bind = ir_new_tmpvar();
 
                 CMM_IR_LABEL lbl_ret_true = ir_new_label("is_true");
@@ -1238,6 +1240,8 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 
                 gen_ir_if_goto(
                     a.bind, ir_new_immediate_int(0), "!=", lbl_ret_true);
+
+                TretExp b = trans_exp(node_b, args);
 
                 gen_ir_if_goto(
                     b.bind, ir_new_immediate_int(0), "!=", lbl_ret_true);
@@ -1251,32 +1255,43 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 gen_ir_label_start(lbl_nxt);
                 RETURN_WITH_TRACE(ret);
             }
-            case CMM_TK_RELOP:
-                ret.type = cmm_ty_make_primitive("int");
-                ret.bind = translate_relop(a.bind, op->data.val_relop, b.bind);
+            case CMM_TK_RELOP: {
+                TretExp b = trans_exp(node_b, args);
+                ret.type  = cmm_ty_make_primitive("int");
+                ret.bind  = translate_relop(a.bind, op->data.val_relop, b.bind);
                 RETURN_WITH_TRACE(ret);
-            case CMM_TK_PLUS:
-                ret.type = b.type;
-                ret.bind = ir_new_tmpvar();
+            }
+            case CMM_TK_PLUS: {
+                TretExp b = trans_exp(node_b, args);
+                ret.type  = b.type;
+                ret.bind  = ir_new_tmpvar();
                 gen_ir_add(ret.bind, a.bind, b.bind);
                 RETURN_WITH_TRACE(ret);
-            case CMM_TK_MINUS:
-                ret.type = b.type;
-                ret.bind = ir_new_tmpvar();
+            }
+            case CMM_TK_MINUS: {
+                TretExp b = trans_exp(node_b, args);
+                ret.type  = b.type;
+                ret.bind  = ir_new_tmpvar();
                 gen_ir_sub(ret.bind, a.bind, b.bind);
                 RETURN_WITH_TRACE(ret);
-            case CMM_TK_STAR:
-                ret.type = b.type;
-                ret.bind = ir_new_tmpvar();
+            }
+            case CMM_TK_STAR: {
+                TretExp b = trans_exp(node_b, args);
+                ret.type  = b.type;
+                ret.bind  = ir_new_tmpvar();
                 gen_ir_mul(ret.bind, a.bind, b.bind);
                 RETURN_WITH_TRACE(ret);
-            case CMM_TK_DIV:
-                ret.type = b.type;
-                ret.bind = ir_new_tmpvar();
+            }
+            case CMM_TK_DIV: {
+                TretExp b = trans_exp(node_b, args);
+                ret.type  = b.type;
+                ret.bind  = ir_new_tmpvar();
                 gen_ir_div(ret.bind, a.bind, b.bind);
                 RETURN_WITH_TRACE(ret);
+            }
             /// array[idx]
-            case CMM_TK_LB:
+            case CMM_TK_LB: {
+                TretExp b = trans_exp(node_b, args);
                 if (!a.is_ident) {
                     cmm_panic("Cannot translate: Code contains variables of "
                               "multi-dimensional array type or parameters of "
@@ -1297,6 +1312,7 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 gen_ir_add(ret.addr, arr_addr, offset);
                 gen_ir_dereference(ret.bind, ret.addr);
                 RETURN_WITH_TRACE(ret);
+            }
             default: cmm_panic("bad ast tree");
         }
     } else if (node_a->token == CMM_TK_ID) {
