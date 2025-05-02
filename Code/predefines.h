@@ -184,5 +184,6 @@ CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field);
 char*         gen_unnamed_struct_name();
 void          cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel);
 CMM_SEM_TYPE  cmm_create_function_type(int size, ...);
+int           cmm_offset_of_struct_field(CMM_SEM_TYPE prod, char* field);
 
 #endif

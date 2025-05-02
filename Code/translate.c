@@ -686,6 +686,10 @@ TretVarDec trans_var_dec(CMM_AST_NODE* node, struct TargVarDec args) {
         *ty                      = args.ty;
         CMM_AST_NODE* vardec     = node->nodes + 0;
 
+        if (args.ty.kind == CMM_ARRAY_TYPE) {
+            cmm_panic("lab3 does not support array of array");
+        }
+
         RETURN_WITH_TRACE(
             trans_var_dec(vardec,
                           (struct TargVarDec){
@@ -810,6 +814,10 @@ tret trans_param_dec(CMM_AST_NODE* node, struct TargParamDec args) {
                                        .ty    = spec_ty,
                                        .where = INSIDE_A_BLOCK,
                                    });
+
+    if (var.type.kind != CMM_PRIMITIVE_TYPE) {
+        cmm_panic("lab3 does not support struct/array as function argument");
+    }
 
     gen_ir_param(var.bind);
 
@@ -1160,8 +1168,20 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 
         /// struct.field
         if (op->token == CMM_TK_DOT) {
-            ret.vkind = LVALUE;
-            cmm_panic("struct的获取还没实现到");
+            ret.vkind    = LVALUE;
+            char* b_name = node_b->data.val_ident;
+            ret.type     = *cmm_ty_field_of_struct(a.type, b_name);
+            ret.bind     = ir_new_tmpvar();
+            ret.is_ident = false;
+
+            CMM_IR_VAR arr_addr = ir_new_tmpvar();
+            gen_ir_get_addr(arr_addr, a.bind);
+            ret.addr          = ir_new_tmpvar();
+            CMM_IR_VAR offset = ir_new_immediate_int(
+                cmm_offset_of_struct_field(a.type, b_name) * 4);
+            gen_ir_add(ret.addr, arr_addr, offset);
+            gen_ir_dereference(ret.bind, ret.addr);
+            RETURN_WITH_TRACE(ret);
         }
 
         TretExp b = trans_exp(node_b, args);

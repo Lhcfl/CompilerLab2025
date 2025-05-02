@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    FILE* ir = fopen(argv[2], "w");
     cmm_trans_code(&cmm_parsed_root);
+    FILE* ir = fopen(argv[2], "w");
     fprintf(ir, "%s", get_ir_output());
 }

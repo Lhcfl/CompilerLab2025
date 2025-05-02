@@ -296,6 +296,15 @@ CMM_SEM_TYPE cmm_ty_make_struct(char* name, CMM_SEM_TYPE* inner, int size) {
     return ret;
 }
 
+int cmm_offset_of_struct_field(CMM_SEM_TYPE prod, char* field) {
+    int offset = 0;
+    for (int i = 0; i < prod.size; i++) {
+        if (strcmp(prod.inner[i].bind, field) == 0) { return offset; }
+        offset += prod.inner[i].bytes4;
+    }
+    return 0;
+}
+
 CMM_SEM_TYPE cmm_ty_make_func(CMM_SEM_TYPE* inner, int size) {
     CMM_SEM_TYPE ret;
     ret.kind   = CMM_FUNCTION_TYPE;
