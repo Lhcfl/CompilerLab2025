@@ -1109,7 +1109,8 @@ void translate_function_call(CMM_IR_VAR    ret,
     // 2. 检查参数个数和类型
     // 3. 生成参数的 IR
 
-    trans_args(args, (struct TargArgs){._void = 0});
+    if (args != NULL) { trans_args(args, (struct TargArgs){._void = 0}); }
+
     gen_ir_call(ret, func_name);
 }
 

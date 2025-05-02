@@ -378,23 +378,23 @@ void cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel) {
     if (val->kind == CMM_AST_NODE_TREE && val->len == 0) { return; }
     switch (val->kind) {
         case CMM_AST_NODE_TOKEN: {
-            printf("%s", cmm_token_tostring(val->token));
+            printf("%s", val->location.text);
             break;
         }
         case CMM_AST_NODE_INT: {
-            printf("INT: %d", val->data.val_int);
+            printf("INT=%d", val->data.val_int);
             break;
         }
         case CMM_AST_NODE_FLOAT: {
-            printf("FLOAT: %f", val->data.val_float);
+            printf("FLOAT=%f", val->data.val_float);
             break;
         }
         case CMM_AST_NODE_TYPE: {
-            printf("TYPE: %s", val->data.val_type);
+            printf("TYPE=%s", val->data.val_type);
             break;
         }
         case CMM_AST_NODE_IDENT: {
-            printf("ID: %s", val->data.val_ident);
+            printf("ID=%s", val->data.val_ident);
             break;
         }
         case CMM_AST_NODE_TREE: {
@@ -403,7 +403,7 @@ void cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel) {
                 printf("=[");
                 for (int i = 0; i < val->len; i++) {
                     cmm_debug_show_node_info(val->nodes + i, fuel - 1);
-                    printf(", ");
+                    if (i != val->len - 1) printf(" ");
                 }
                 printf("]");
             }

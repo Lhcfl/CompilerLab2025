@@ -6,7 +6,7 @@
 #define IR_VAR_BUFFER_SIZE 50
 #define IR_LABEL_BUFFER_SIZE 50
 
-char  buffer[30000];
+char  buffer[300000];
 char* buffer_ptr = buffer;
 
 #define PRINT_IR(...)                     \
