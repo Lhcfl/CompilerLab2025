@@ -815,8 +815,8 @@ tret trans_param_dec(CMM_AST_NODE* node, struct TargParamDec args) {
                                        .where = INSIDE_A_BLOCK,
                                    });
 
-    if (var.type.kind != CMM_PRIMITIVE_TYPE) {
-        cmm_panic("lab3 does not support struct/array as function argument");
+    if (var.type.kind == CMM_ARRAY_TYPE) {
+        cmm_panic("lab3 does not support array as function argument");
     }
 
     gen_ir_param(var.bind);
@@ -1191,7 +1191,7 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
             case CMM_TK_ASSIGNOP:
                 ret.vkind = LVALUE;
                 ret.type  = b.type;
-                ret.bind  = a.bind;
+                ret.bind  = b.bind;
 
 #ifdef CMM_DEBUG_LAB3TRACE
                 cmm_debug(COLOR_MAGENTA,
@@ -1208,34 +1208,47 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                 RETURN_WITH_TRACE(ret);
             case CMM_TK_AND: {
                 ret.type = b.type;
+                ret.bind = ir_new_tmpvar();
 
-                CMM_IR_VAR a_not_0 =
-                    translate_relop(a.bind, "!=", ir_new_immediate_int(0));
-                CMM_IR_VAR b_not_0 =
-                    translate_relop(b.bind, "!=", ir_new_immediate_int(0));
-                CMM_IR_VAR and_result = ir_new_var("and_res");
+                CMM_IR_LABEL lbl_ret_false = ir_new_label("is_false");
+                CMM_IR_LABEL lbl_nxt       = ir_new_label("nxt");
 
-                gen_ir_add(and_result, a_not_0, b_not_0);
+                gen_ir_if_goto(
+                    a.bind, ir_new_immediate_int(0), "==", lbl_ret_false);
 
-                ret.bind =
-                    translate_relop(and_result, "==", ir_new_immediate_int(2));
+                gen_ir_if_goto(
+                    b.bind, ir_new_immediate_int(0), "==", lbl_ret_false);
+
+                gen_ir_assign(ret.bind, ir_new_immediate_int(1));
+                gen_ir_goto(lbl_nxt);
+
+                gen_ir_label_start(lbl_ret_false);
+                gen_ir_assign(ret.bind, ir_new_immediate_int(0));
+
+                gen_ir_label_start(lbl_nxt);
 
                 RETURN_WITH_TRACE(ret);
             }
             case CMM_TK_OR: {
                 ret.type = b.type;
+                ret.bind = ir_new_tmpvar();
 
-                CMM_IR_VAR a_not_0 =
-                    translate_relop(a.bind, "!=", ir_new_immediate_int(0));
-                CMM_IR_VAR b_not_0 =
-                    translate_relop(b.bind, "!=", ir_new_immediate_int(0));
-                CMM_IR_VAR or_result = ir_new_var("or_res");
+                CMM_IR_LABEL lbl_ret_true = ir_new_label("is_true");
+                CMM_IR_LABEL lbl_nxt      = ir_new_label("nxt");
 
-                gen_ir_add(or_result, a_not_0, b_not_0);
+                gen_ir_if_goto(
+                    a.bind, ir_new_immediate_int(0), "!=", lbl_ret_true);
 
-                ret.bind =
-                    translate_relop(or_result, "==", ir_new_immediate_int(1));
+                gen_ir_if_goto(
+                    b.bind, ir_new_immediate_int(0), "!=", lbl_ret_true);
 
+                gen_ir_assign(ret.bind, ir_new_immediate_int(0));
+                gen_ir_goto(lbl_nxt);
+
+                gen_ir_label_start(lbl_ret_true);
+                gen_ir_assign(ret.bind, ir_new_immediate_int(1));
+
+                gen_ir_label_start(lbl_nxt);
                 RETURN_WITH_TRACE(ret);
             }
             case CMM_TK_RELOP:
