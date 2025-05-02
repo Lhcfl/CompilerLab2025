@@ -1312,7 +1312,7 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
     } else if (node_a->token == CMM_TK_NOT) {
         ret.type  = cmm_ty_make_primitive("int");
         TretExp b = trans_exp(node->nodes + 1, args);
-        ret.bind  = translate_relop(b.bind, "!=", ir_new_immediate_int(0));
+        ret.bind  = translate_relop(b.bind, "==", ir_new_immediate_int(0));
 
         RETURN_WITH_TRACE(ret);
 
