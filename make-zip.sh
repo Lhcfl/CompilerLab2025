@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 定义 zip 文件名
-ZIP_NAME="submit.zip"
+ZIP_NAME="$1.zip"
 
 # 需要排除的文件/文件夹
 EXCLUDE_LIST=(

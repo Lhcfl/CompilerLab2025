@@ -1192,8 +1192,10 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                     translate_relop(a.bind, "!=", ir_new_immediate_int(0));
                 CMM_IR_VAR b_not_0 =
                     translate_relop(b.bind, "!=", ir_new_immediate_int(0));
-                CMM_IR_VAR and_result = ir_new_tmpvar();
-                gen_ir_add(ret.bind, a_not_0, b_not_0);
+                CMM_IR_VAR and_result = ir_new_var("and_res");
+
+                gen_ir_add(and_result, a_not_0, b_not_0);
+
                 ret.bind =
                     translate_relop(and_result, "==", ir_new_immediate_int(2));
 
@@ -1206,8 +1208,10 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
                     translate_relop(a.bind, "!=", ir_new_immediate_int(0));
                 CMM_IR_VAR b_not_0 =
                     translate_relop(b.bind, "!=", ir_new_immediate_int(0));
-                CMM_IR_VAR or_result = ir_new_tmpvar();
-                gen_ir_add(ret.bind, a_not_0, b_not_0);
+                CMM_IR_VAR or_result = ir_new_var("or_res");
+
+                gen_ir_add(or_result, a_not_0, b_not_0);
+
                 ret.bind =
                     translate_relop(or_result, "==", ir_new_immediate_int(1));
 
