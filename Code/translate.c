@@ -44,9 +44,10 @@ typedef struct TransDef {
     int          line;
     char*        name;
     CMM_SEM_TYPE ty;
-    enum SemContextKind {
-        TRANS_CTX_TYPE,
-        TRANS_CTX_VAR,
+    enum TransDefKind {
+        TRANS_DEF_TYPE,
+        TRANS_DEF_VAR,
+        TRANS_DEF_VAR_ADDR,
     } kind;
     CMM_IR_VAR ir_var;
 } TransDef;
@@ -155,6 +156,7 @@ typedef struct TretExp {
     CMM_SEM_TYPE        type;
     enum CMM_VALUE_KIND vkind;
     bool                is_ident;
+    bool                is_struct_addr;
     /// lvalue 的 addr
     CMM_IR_VAR          addr;
 } TretExp;
@@ -203,14 +205,14 @@ void free_trans_ctx(void* data) {
     (void)data;
 }
 
-int trans_ctx_compare(const void* a, const void* b, void* _udata) {
+int trans_DEF_compare(const void* a, const void* b, void* _udata) {
     const TransDef* ua = a;
     const TransDef* ub = b;
     (void)(_udata);
     return strcmp(ua->name, ub->name);
 }
 
-uint64_t trans_ctx_hash(const void* item, uint64_t seed0, uint64_t seed1) {
+uint64_t trans_DEF_hash(const void* item, uint64_t seed0, uint64_t seed1) {
     const TransDef* ctx = item;
     return hashmap_sip(ctx->name, strlen(ctx->name), seed0, seed1);
 }
@@ -250,7 +252,7 @@ void __force_exit_trans_scope() {
         TransDef* deleted = (TransDef*)hashmap_delete(
             trans_context, &(TransDef){.name = ptr->name});
 
-        // if (deleted->def == TRANS_CTX_DECLARE) {
+        // if (deleted->def == TRANS_DEF_DECLARE) {
         //     cmm_panic("function is declared but not defined");
         // }
 
@@ -284,11 +286,11 @@ void exit_trans_scope() {
 }
 #endif
 
-char* _trans_ctx_finder(const char* name, TransScope* scope) {
+char* _trans_DEF_finder(const char* name, TransScope* scope) {
     if (scope == NULL) {
         return cmm_clone_string(name);
     } else {
-        char* tmp = _trans_ctx_finder(scope->name, scope->back);
+        char* tmp = _trans_DEF_finder(scope->name, scope->back);
         if (name == NULL) { return tmp; }
         char* ret = cmm_concat_string(3, tmp, "::", name);
         free(tmp);
@@ -298,7 +300,7 @@ char* _trans_ctx_finder(const char* name, TransScope* scope) {
 
 /// 在当前作用域下产生一个新的定义或声明
 void push_trans_def(TransDef arg) {
-    char* varname = _trans_ctx_finder(arg.name, trans_scope);
+    char* varname = _trans_DEF_finder(arg.name, trans_scope);
 
     // 检查是否存在这个def
     TransDef* existed =
@@ -309,8 +311,8 @@ void push_trans_def(TransDef arg) {
 
     /// 变量的名字不能和类型一样
     const TransDef* existed_rec = get_trans_defination(arg.name);
-    if (existed_rec != NULL && existed_rec->kind == TRANS_CTX_TYPE &&
-        arg.kind == TRANS_CTX_VAR)
+    if (existed_rec != NULL && existed_rec->kind == TRANS_DEF_TYPE &&
+        arg.kind == TRANS_DEF_VAR)
         cmm_panic("var name is same as type name %s : %s",
                   varname,
                   existed_rec->ty.name);
@@ -337,7 +339,7 @@ const TransDef* get_trans_defination(const char* name) {
     TransScope*     scope = trans_scope;
 
     while (ret == NULL && scope != NULL) {
-        char* varname = _trans_ctx_finder(name, scope);
+        char* varname = _trans_DEF_finder(name, scope);
         // #ifdef CMM_DEBUG_LAB3TRACE
         //         printf("[search] finding %s\n", varname);
         // #endif
@@ -363,8 +365,8 @@ int cmm_trans_code(CMM_AST_NODE* node) {
                                 65535,
                                 0,
                                 0,
-                                trans_ctx_hash,
-                                trans_ctx_compare,
+                                trans_DEF_hash,
+                                trans_DEF_compare,
                                 free_trans_ctx,
                                 NULL);
 
@@ -373,7 +375,7 @@ int cmm_trans_code(CMM_AST_NODE* node) {
 
     // read: () -> int
     push_trans_def((TransDef){
-        .kind = TRANS_CTX_VAR,
+        .kind = TRANS_DEF_VAR,
         .name = cmm_clone_string("read"),
         .ty   = cmm_create_function_type(1, "int"),
         .line = 0,
@@ -381,7 +383,7 @@ int cmm_trans_code(CMM_AST_NODE* node) {
 
     // write: int -> int
     push_trans_def((TransDef){
-        .kind = TRANS_CTX_VAR,
+        .kind = TRANS_DEF_VAR,
         .name = cmm_clone_string("write"),
         .ty   = cmm_create_function_type(2, "int", "int"),
         .line = 0,
@@ -601,7 +603,7 @@ tret trans_struct_specifier(CMM_AST_NODE* node, struct TargStructSpecifier _) {
         trans_scope               = root_trans_scope;
 
         push_trans_def((TransDef){
-            .kind = TRANS_CTX_TYPE,
+            .kind = TRANS_DEF_TYPE,
             .name = name,
             .ty   = ty,
         });
@@ -668,7 +670,7 @@ TretVarDec trans_var_dec(CMM_AST_NODE* node, struct TargVarDec args) {
         CMM_IR_VAR ir_var = ir_new_var(id);
 
         push_trans_def((TransDef){
-            .kind   = TRANS_CTX_VAR,
+            .kind   = TRANS_DEF_VAR,
             .name   = id,
             .ty     = args.ty,
             .ir_var = ir_var,
@@ -748,7 +750,7 @@ tret trans_fun_dec(CMM_AST_NODE* node, struct TargFunDec args) {
 
         push_trans_def((TransDef){
             .line = id->location.line,
-            .kind = TRANS_CTX_VAR,
+            .kind = TRANS_DEF_VAR,
             .name = func_name,
             .ty   = fnty,
         });
@@ -821,9 +823,11 @@ tret trans_param_dec(CMM_AST_NODE* node, struct TargParamDec args) {
 
     gen_ir_param(var.bind);
 
-    const TransDef* ctx = get_trans_defination(var.varname);
-    *args.ty            = ctx->ty;
-    args.ty->bind       = vardec->trans.ident;
+    TransDef* ctx = (TransDef*)get_trans_defination(var.varname);
+    *args.ty      = ctx->ty;
+    args.ty->bind = vardec->trans.ident;
+
+    if (ctx->ty.kind != CMM_PRIMITIVE_TYPE) { ctx->kind = TRANS_DEF_VAR_ADDR; }
 
     RETURN_WITH_TRACE(0);
 }
@@ -1175,12 +1179,24 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
             ret.bind     = ir_new_tmpvar();
             ret.is_ident = false;
 
-            CMM_IR_VAR arr_addr = ir_new_tmpvar();
-            gen_ir_get_addr(arr_addr, a.bind);
+            CMM_IR_VAR a_addr = ir_new_tmpvar();
             ret.addr          = ir_new_tmpvar();
+
+#ifdef CMM_DEBUG_LAB3TRACE
+            cmm_debug(COLOR_MAGENTA,
+                      "// struct addr? %s\n",
+                      a.is_struct_addr ? "true" : "false");
+#endif
+            if (a.is_struct_addr) {
+                gen_ir_assign(a_addr, a.bind);
+            } else {
+                gen_ir_get_addr(a_addr, a.bind);
+            }
+
             CMM_IR_VAR offset = ir_new_immediate_int(
                 cmm_offset_of_struct_field(a.type, b_name) * 4);
-            gen_ir_add(ret.addr, arr_addr, offset);
+
+            gen_ir_add(ret.addr, a_addr, offset);
             gen_ir_dereference(ret.bind, ret.addr);
             RETURN_WITH_TRACE(ret);
         }
@@ -1332,10 +1348,11 @@ TretExp trans_exp(CMM_AST_NODE* node, struct TargExp args) {
 #endif
 
         if (node->len == 1) {
-            ret.vkind    = LVALUE;
-            ret.is_ident = true;
-            ret.type     = a_def->ty;
-            ret.bind     = a_def->ir_var;
+            ret.vkind          = LVALUE;
+            ret.is_ident       = true;
+            ret.type           = a_def->ty;
+            ret.bind           = a_def->ir_var;
+            ret.is_struct_addr = a_def->kind == TRANS_DEF_VAR_ADDR;
             RETURN_WITH_TRACE(ret);
         }
 
@@ -1422,7 +1439,12 @@ tret trans_args(CMM_AST_NODE* root, struct TargArgs _) {
 
     // 逆序 push args
     while (head != NULL) {
-        gen_ir_arg(head->data.bind);
+        CMM_IR_VAR arg = head->data.bind;
+        if (head->data.type.kind != CMM_PRIMITIVE_TYPE) {
+            gen_ir_arg_addr(arg);
+        } else {
+            gen_ir_arg(arg);
+        }
         struct list_of_TretExp* tmp = head->next;
         free(head);
         head = tmp;

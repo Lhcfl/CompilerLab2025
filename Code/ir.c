@@ -181,6 +181,11 @@ void gen_ir_arg(CMM_IR_VAR x) {
     gen_ir_var_name(x);
     PRINT_IR("ARG %s\n", name_x);
 }
+/// ARG &x
+void gen_ir_arg_addr(CMM_IR_VAR x) {
+    gen_ir_var_name(x);
+    PRINT_IR("ARG &%s\n", name_x);
+}
 /// x := CALL f
 void gen_ir_call(CMM_IR_VAR ret, const char* func_name) {
     gen_ir_var_name(ret);

@@ -62,6 +62,8 @@ void gen_ir_return(CMM_IR_VAR ret);
 void gen_ir_alloc(CMM_IR_VAR x, int size);
 /// ARG x
 void gen_ir_arg(CMM_IR_VAR x);
+/// ARG &x
+void gen_ir_arg_addr(CMM_IR_VAR x);
 /// x := CALL f
 void gen_ir_call(CMM_IR_VAR ret, const char* func_name);
 /// PARAM x
