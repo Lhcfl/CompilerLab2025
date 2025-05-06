@@ -1,4 +1,5 @@
 #include "ir.h"
+#include "llib.h"
 #include "predefines.h"
 #include "globals.h"
 #include "semantic.h"
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
 
     FILE* f = fopen(argv[1], "r");
 
-#ifdef CMM_DEBUG_FLAG
+#ifdef CMM_DEBUG_LAB1
     printf("\n======== BEGIN ==========\n\n");
 #endif
 
@@ -60,13 +61,13 @@ int main(int argc, char** argv) {
     if (cmm_lexical_error) { return 0; }
     if (cmm_syntax_error) { return 0; }
 
-#ifdef CMM_DEBUG_FLAG
+#ifdef CMM_DEBUG_LAB1
     printf("\n\n======================\n\n");
     cmm_log_node(&cmm_parsed_root);
     printf("\n\n======================\n\n");
 #endif
 
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     printf("\n\n======================\n\n");
     cmm_log_node(&cmm_parsed_root);
     printf("\n\n======================\n\n");
@@ -92,5 +93,9 @@ int main(int argc, char** argv) {
 
     cmm_trans_code(&cmm_parsed_root);
     FILE* ir = fopen(argv[2], "w");
-    fprintf(ir, "%s", get_ir_output());
+    fprintf(ir, "%s", get_ir_output()->str);
+    LStringFree(get_ir_output());
+
+
+    cmm_free_ast(&cmm_parsed_root);
 }

@@ -2,6 +2,7 @@
 #include "hashmap.h"
 #include "predefines.h"
 #include "syndef.h"
+#include "type_system.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -26,7 +27,7 @@
         return e;                                          \
     }
 
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
 int __sem_trace_spaces = 0;
 #    define FUNCTION_TRACE                                            \
         {                                                             \
@@ -208,7 +209,7 @@ StringList*        root_semantic_scope   = NULL;
 #pragma region Helper Functions
 
 void record_error(int lineno, enum CMM_SEMANTIC error) {
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     printf("\033[1;31mError type %d at Line %d: %s\033[0m\n",
            error,
            lineno,
@@ -289,7 +290,7 @@ StringList* __force_enter_semantic_scope(const char* name) {
     scope->back       = semantic_scope;
     semantic_scope    = scope;
 
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     printf("\033[1;32mentering scope: %s\033[0m\n", name);
 #endif
 
@@ -298,7 +299,7 @@ StringList* __force_enter_semantic_scope(const char* name) {
 
 /// 退出当前的语义分析作用域
 void __force_exit_semantic_scope() {
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     printf("\033[1;32mquiting scope: %s\033[0m\n", semantic_scope->name);
 #endif
     // 释放当前作用域的所有定义
@@ -365,7 +366,7 @@ int push_context(SemanticContext arg) {
         semantic_context, &(SemanticContext){.name = varname});
 
     if (existed != NULL) {
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
         if (arg.def == SEM_CTX_DECLARE || existed->def == SEM_CTX_DECLARE)
             printf("\033[1;33m[register] %s %s : %s\033[0m\n",
                    arg.def == SEM_CTX_DECLARE ? "dec" : "def",
@@ -395,7 +396,7 @@ int push_context(SemanticContext arg) {
         return 0;
     }
 
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     printf("\033[1;33m[register] %s %s : %s\033[0m\n",
            arg.def == SEM_CTX_DECLARE ? "dec" : "def",
            varname,
@@ -424,7 +425,7 @@ const SemanticContext* find_defination(const char* name) {
 
     while (ret == NULL && scope != NULL) {
         char* varname = _ctx_finder(name, scope);
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
         printf("[search] finding %s\n", varname);
 #endif
         ret =
@@ -433,7 +434,7 @@ const SemanticContext* find_defination(const char* name) {
         scope = scope->back;
     }
 
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     if (ret == NULL) {
         printf("[search] not found\n");
     } else {
@@ -537,7 +538,7 @@ enum CMM_SEMANTIC analyze_ext_def(CMM_AST_NODE* node, struct AnalyCtxExtDef _) {
 
     CMM_SEM_TYPE spec_ty = specifier->context.data.type;
 
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
     printf("type is %s\n", spec_ty.name);
 #endif
 
@@ -1048,7 +1049,7 @@ enum CMM_SEMANTIC analyze_stmt(CMM_AST_NODE* node, struct AnalyCtxStmt args) {
                 args.current_fn_ty.inner[args.current_fn_ty.size - 1];
             CMM_SEM_TYPE got = exp->context.data.type;
             if (!cmm_ty_fitable(need, got)) {
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
                 printf("need %s, got %s\n", need.name, got.name);
 #endif
                 REPORT_AND_RETURN(CMM_SE_RETURN_TYPE_ERROR)
@@ -1267,7 +1268,7 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
         if (op->token == CMM_TK_DOT) {
             node->context.value_kind = LVALUE;
             if (type_a.kind == CMM_ERROR_TYPE) { RETURN_WITH_TRACE(CMM_SE_OK); }
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
             printf("trying get %s.%s (size = %d, {",
                    type_a.name,
                    b->data.val_ident,
@@ -1360,7 +1361,7 @@ enum CMM_SEMANTIC analyze_exp(CMM_AST_NODE* node, struct AnalyCtxExp args) {
             default: REPORT_AND_RETURN(CMM_SE_BAD_AST_TREE);
         }
     } else if (a->token == CMM_TK_ID) {
-#ifdef CMM_DEBUG_FLAGTRACE
+#ifdef CMM_DEBUG_LAB2
         printf("[search] will find %s\n", a->data.val_ident);
 #endif
         const SemanticContext* a_def = find_defination(a->data.val_ident);

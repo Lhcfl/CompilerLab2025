@@ -1,4 +1,5 @@
 #include "ir.h"
+#include "llib.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,14 +7,15 @@
 #define IR_VAR_BUFFER_SIZE 50
 #define IR_LABEL_BUFFER_SIZE 50
 
-char  buffer[300000];
-char* buffer_ptr = buffer;
+LString buffer = NULL;
+char    buffer_ptr[512];
 
-#define PRINT_IR(...)                     \
-    {                                     \
-        sprintf(buffer_ptr, __VA_ARGS__); \
-        buffer_ptr += strlen(buffer_ptr); \
-        printf(__VA_ARGS__);              \
+#define PRINT_IR(...)                               \
+    {                                               \
+        if (buffer == NULL) buffer = MakeLString(); \
+        sprintf(buffer_ptr, __VA_ARGS__);           \
+        LStringPush(buffer, buffer_ptr);            \
+        printf(__VA_ARGS__);                        \
     }
 
 #define gen_ir_var_name(var)                                             \
@@ -208,4 +210,4 @@ void gen_ir_write(CMM_IR_VAR x) {
     PRINT_IR("WRITE %s\n", name_x);
 }
 
-char* get_ir_output() { return buffer; }
+LString get_ir_output() { return buffer; }

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "syndef.h"
 
-// #define CMM_DEBUG_FLAG
+// #define CMM_DEBUG_LAB1
 #define CMM_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define CMM_MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -130,13 +130,6 @@ typedef struct CMM_SEM_CONTEXT {
     } data;
 } CMM_SEM_CONTEXT;
 
-/// 语法翻译的 Context
-typedef struct CMM_TRANS_CONTEXT {
-    enum CMM_VALUE_KIND value_kind;
-    CMM_SEM_TYPE        type;
-    char*               ident;
-} CMM_TRANS_CONTEXT;
-
 typedef struct CMM_AST_NODE {
     enum CMM_AST_NODE_KIND kind;
     enum CMM_SYNTAX_TOKEN  token;
@@ -151,7 +144,6 @@ typedef struct CMM_AST_NODE {
     int                     len;
     struct CMM_AST_LOCATION location;
     CMM_SEM_CONTEXT         context;
-    CMM_TRANS_CONTEXT       trans;
 } CMM_AST_NODE;
 
 #define YYSTYPE CMM_AST_NODE
@@ -159,31 +151,21 @@ typedef struct CMM_AST_NODE {
 extern YYSTYPE yylval;
 extern char*   yytext;
 
-void          cmm_cancel_next_yyerror(int);
-void          cmm_report_error(char type, char* msg);
-void          cmm_log_node(CMM_AST_NODE* val);
-void          cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token);
-void          cmm_send_yylval_int(int val);
-void          cmm_send_yylval_float(float val);
-void          cmm_send_yylval_type(char* val);
-void          cmm_send_yylval_ident(char* val);
-void          cmm_send_yylval_loc(int, int);
-int           cmm_parse_int(char*);
-CMM_AST_NODE  cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...);
-CMM_AST_NODE  cmm_empty_tree(enum CMM_SYNTAX_TOKEN name);
-char*         cmm_ty_make_array_typename(CMM_SEM_TYPE ty);
-char*         cmm_ty_make_fn_typename(CMM_SEM_TYPE ty);
-CMM_SEM_TYPE  cmm_ty_make_primitive(char* name);
-CMM_SEM_TYPE  cmm_ty_make_array(CMM_SEM_TYPE* inner, int size);
-CMM_SEM_TYPE  cmm_ty_make_func(CMM_SEM_TYPE* inner, int size);
-CMM_SEM_TYPE  cmm_ty_make_struct(char* name, CMM_SEM_TYPE* inner, int size);
-CMM_SEM_TYPE  cmm_ty_make_error();
-int           cmm_ty_eq(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
-int           cmm_ty_fitable(CMM_SEM_TYPE t1, CMM_SEM_TYPE t2);
-CMM_SEM_TYPE* cmm_ty_field_of_struct(CMM_SEM_TYPE prod, char* field);
-char*         gen_unnamed_struct_name();
-void          cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel);
-CMM_SEM_TYPE  cmm_create_function_type(int size, ...);
-int           cmm_offset_of_struct_field(CMM_SEM_TYPE prod, char* field);
+void cmm_free_ast(CMM_AST_NODE* root);
+
+void         cmm_cancel_next_yyerror(int);
+void         cmm_report_error(char type, char* msg);
+void         cmm_log_node(CMM_AST_NODE* val);
+void         cmm_send_yylval_token(enum CMM_SYNTAX_TOKEN token);
+void         cmm_send_yylval_int(int val);
+void         cmm_send_yylval_float(float val);
+void         cmm_send_yylval_type(char* val);
+void         cmm_send_yylval_ident(char* val);
+void         cmm_send_yylval_loc(int, int);
+int          cmm_parse_int(char*);
+CMM_AST_NODE cmm_node_tree(enum CMM_SYNTAX_TOKEN name, int len, ...);
+CMM_AST_NODE cmm_empty_tree(enum CMM_SYNTAX_TOKEN name);
+char*        gen_unnamed_struct_name();
+void         cmm_debug_show_node_info(CMM_AST_NODE* val, int fuel);
 
 #endif
