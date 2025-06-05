@@ -62,7 +62,7 @@ CMM_IR_VAR ir_new_var(char* desc) {
 }
 
 CMM_IR_VAR ir_new_tmpvar() {
-    static int var_count = 1;
+    static int var_count = 0;
     var_count--;
     return (CMM_IR_VAR){
         .kind    = IR_VARIABLE,
