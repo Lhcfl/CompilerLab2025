@@ -1,4 +1,6 @@
 #include "llib.h"
+#include "predefines.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,7 +14,7 @@ LString MakeLString() {
 
 LString MakeLStringWith(const char* init) {
     LString ret     = malloc(sizeof(struct LStringBody));
-    size_t  initlen = strlen(init);
+    size_t  initlen = strlen(init) + 1;
     size_t  capa =
         initlen < DEFAULT_LARRY_CAPACITY ? DEFAULT_LARRY_CAPACITY : initlen;
 

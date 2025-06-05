@@ -30,11 +30,11 @@
 #define COLOR_CYAN "\033[1;36m"
 #define COLOR_WHITE "\033[1;37m"
 
-#define cmm_debug(color, ...) \
-    {                         \
-        printf(color);        \
-        printf(__VA_ARGS__);  \
-        printf(COLOR_EMPTY);  \
+#define cmm_debug(color, ...)      \
+    {                              \
+        printf("%s", color);       \
+        printf(__VA_ARGS__);       \
+        printf("%s", COLOR_EMPTY); \
     }
 
 extern int yylex(void);

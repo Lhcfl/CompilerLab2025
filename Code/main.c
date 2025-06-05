@@ -1,3 +1,4 @@
+#include "codegen.h"
 #include "ir.h"
 #include "llib.h"
 #include "predefines.h"
@@ -91,11 +92,33 @@ int main(int argc, char** argv) {
     }
 #endif
 
+    initialize_ir();
     cmm_trans_code(&cmm_parsed_root);
+
     FILE* ir = fopen(argv[2], "w");
-    fprintf(ir, "%s", get_ir_output()->str);
-    LStringFree(get_ir_output());
 
+#ifdef BYYL_IS_LAB3
+    for (size_t i = 0; i < get_ir_output()->size; i++) {
+        fprintf(ir, "%s\n", ptr[i]->str);
+    }
+#endif
 
+    cmm_gen_code();
+
+    LString* asm_output = get_asm_output()->data;
+    for (size_t i = 0; i < get_asm_output()->size; i++) {
+        fprintf(ir, "%s\n", asm_output[i]->str);
+    }
+
+    IR_CODE* ptr = get_ir_output()->data;
+    for (size_t i = 0; i < get_ir_output()->size; i++) {
+        LString str = ir_code_to_string(ptr[i]);
+        fprintf(ir, "%s\n", str->str);
+        LStringFree(str);
+    }
+
+    fclose(ir);
+    free_asm_output();
+    free_all_ir();
     cmm_free_ast(&cmm_parsed_root);
 }

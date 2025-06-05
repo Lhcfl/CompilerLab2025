@@ -23,6 +23,84 @@ typedef struct CMM_IR_LABEL {
     int   id;
 } CMM_IR_LABEL;
 
+typedef enum IR_2CODE_OPS {
+    IR_ASSIGN,    // :=
+    IR_GETADDR,   // :=&
+    IR_DEREF,     // :=*
+    IR_PUTADDR,   // *:=
+} IR_2CODE_OPS;
+
+typedef enum IR_3CODE_OPS {
+    IR_ADD,
+    IR_SUB,
+    IR_MUL,
+    IR_DIV,
+
+} IR_3CODE_OPS;
+
+typedef enum IR_CODE_KIND {
+    IR_LABEL,
+    IR_FUNCTION,
+    IR_CALL,
+    IR_WRITE,
+    IR_READ,
+    IR_GOTO,
+    IR_RETURN,
+    IR_IF,
+    IR_2CODE,
+    IR_3CODE,
+    IR_ARG,
+    IR_PARAM,
+    IR_ARG_ADDR,
+    IR_ALLOC,
+} IR_CODE_KIND;
+
+typedef struct IR_3_CODE {
+    CMM_IR_VAR   x;   // xid
+    CMM_IR_VAR   y;   // yid
+    IR_3CODE_OPS op;
+    CMM_IR_VAR   z;   // zid
+} IR_3_CODE;
+
+typedef struct IR_2_CODE {
+    CMM_IR_VAR   x;   // xid
+    IR_2CODE_OPS op;
+    CMM_IR_VAR   z;   // zid
+} IR_2_CODE;
+
+typedef struct IR_IF_CODE {
+    CMM_IR_VAR   x;
+    char*        rel;
+    CMM_IR_VAR   y;
+    CMM_IR_LABEL z;
+} IR_IF_CODE;
+
+typedef struct IR_ALLOC_CODE {
+    CMM_IR_VAR x;
+    int        size;   // size in bytes
+} IR_ALLOC_CODE;
+
+typedef struct IR_CALL_CODE {
+    CMM_IR_VAR x;           // ret var
+    char*      func_name;   // function name
+} IR_CALL_CODE;
+
+typedef struct IR_CODE {
+    enum IR_CODE_KIND kind;
+    union {
+        CMM_IR_LABEL  label;        // IR_LABEL
+        IR_IF_CODE    if_code;      // IR_IF
+        IR_3_CODE     three_addr;   //
+        IR_2_CODE     two_addr;     //
+        CMM_IR_VAR    var;
+        char*         func_name;    // IR_FUNCTION
+        IR_ALLOC_CODE alloc_code;   // IR_ALLOC
+        IR_CALL_CODE  call_code;    // IR_CALL
+    } data;
+} IR_CODE;
+
+DefineLArray(IR_CODE);
+
 CMM_IR_LABEL ir_new_label(char* desc);
 CMM_IR_VAR   ir_new_var(char* desc);
 CMM_IR_VAR   ir_new_tmpvar();
@@ -74,5 +152,8 @@ void gen_ir_read(CMM_IR_VAR x);
 /// WRITE x
 void gen_ir_write(CMM_IR_VAR x);
 
-LString get_ir_output();
+void             initialize_ir();
+void             free_all_ir();
+LString          ir_code_to_string(IR_CODE code);
+LArrayOfIR_CODE* get_ir_output();
 #endif
