@@ -3,10 +3,10 @@
 #include "predefines.h"
 #include "syndef.h"
 #include "type_system.h"
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "stdint.h"
+#include "string.h"
+#include "stdio.h"
+#include "stdlib.h"
 
 #pragma region Definations
 #define ANALYZE_EXPECT_OK(x)                          \

@@ -1,10 +1,10 @@
 #include "predefines.h"
 #include "globals.h"
 #include "syndef.h"
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
+#include "stdlib.h"
+#include "stdarg.h"
+#include "stdio.h"
+#include "string.h"
 
 extern int     yylex(void);
 extern int     fileno(FILE*);

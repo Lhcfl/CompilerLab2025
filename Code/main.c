@@ -7,7 +7,7 @@
 #include "translate.h"
 #include "syndef.h"
 #include "syntax.tab.h"
-#include <stdio.h>
+#include "stdio.h"
 
 void cmm_print_node(CMM_AST_NODE* val, int indent) {
     if (val->kind == CMM_AST_NODE_TREE && val->len == 0) { return; }

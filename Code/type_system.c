@@ -1,7 +1,7 @@
 #include "type_system.h"
 #include "predefines.h"
-#include <stdlib.h>
-#include <string.h>
+#include "stdlib.h"
+#include "string.h"
 
 /// @returns inner[size]
 // 同C语言一样，只要数组的基类型和维

@@ -1,6 +1,6 @@
 #pragma once
-#include <stdio.h>
-#include <stdlib.h>
+#include "stdio.h"
+#include "stdlib.h"
 
 #define DEFAULT_LARRY_CAPACITY 15ull
 #define DefineLArray(Type)                                                    \

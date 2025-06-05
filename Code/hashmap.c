@@ -2,11 +2,11 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stddef.h>
+#include "stdio.h"
+#include "string.h"
+#include "stdlib.h"
+#include "stdint.h"
+#include "stddef.h"
 #include "hashmap.h"
 
 #define GROW_AT 0.60   /* 60% */
@@ -174,18 +174,26 @@ struct hashmap* hashmap_new_with_allocator(
 // The hashmap must be freed with hashmap_free().
 // Param `elfree` is a function that frees a specific item. This should be NULL
 // unless you're storing some kind of reference data in the hash.
-struct hashmap* hashmap_new(size_t   elsize,
-                            size_t   cap,
-                            uint64_t seed0,
-                            uint64_t seed1,
-                            uint64_t (*hash)(const void* item,
-                                             uint64_t    seed0,
-                                             uint64_t    seed1),
-                            int (*compare)(const void* a, const void* b, void* udata),
-                            void (*elfree)(void* item),
-                            void* udata) {
-    return hashmap_new_with_allocator(
-        NULL, NULL, NULL, elsize, cap, seed0, seed1, hash, compare, elfree, udata);
+struct hashmap* hashmap_new(
+    size_t   elsize,
+    size_t   cap,
+    uint64_t seed0,
+    uint64_t seed1,
+    uint64_t (*hash)(const void* item, uint64_t seed0, uint64_t seed1),
+    int (*compare)(const void* a, const void* b, void* udata),
+    void (*elfree)(void* item),
+    void* udata) {
+    return hashmap_new_with_allocator(NULL,
+                                      NULL,
+                                      NULL,
+                                      elsize,
+                                      cap,
+                                      seed0,
+                                      seed1,
+                                      hash,
+                                      compare,
+                                      elfree,
+                                      udata);
 }
 
 static void free_elements(struct hashmap* map) {
@@ -265,12 +273,16 @@ static bool resize0(struct hashmap* map, size_t new_cap) {
     return true;
 }
 
-static bool resize(struct hashmap* map, size_t new_cap) { return resize0(map, new_cap); }
+static bool resize(struct hashmap* map, size_t new_cap) {
+    return resize0(map, new_cap);
+}
 
 // hashmap_set_with_hash works like hashmap_set but you provide your
 // own hash. The 'hash' callback provided to the hashmap_new function
 // will not be called
-const void* hashmap_set_with_hash(struct hashmap* map, const void* item, uint64_t hash) {
+const void* hashmap_set_with_hash(struct hashmap* map,
+                                  const void*     item,
+                                  uint64_t        hash) {
     hash     = clip_hash(hash);
     map->oom = false;
     if (map->count >= map->growat) {
@@ -324,7 +336,9 @@ const void* hashmap_set(struct hashmap* map, const void* item) {
 // hashmap_get_with_hash works like hashmap_get but you provide your
 // own hash. The 'hash' callback provided to the hashmap_new function
 // will not be called
-const void* hashmap_get_with_hash(struct hashmap* map, const void* key, uint64_t hash) {
+const void* hashmap_get_with_hash(struct hashmap* map,
+                                  const void*     key,
+                                  uint64_t        hash) {
     hash     = clip_hash(hash);
     size_t i = hash & map->mask;
     while (1) {
@@ -484,12 +498,12 @@ static uint64_t SIP64(const uint8_t* in,
                       const size_t   inlen,
                       uint64_t       seed0,
                       uint64_t       seed1) {
-#define U8TO64_LE(p)                                                                     \
-    {                                                                                    \
-        (((uint64_t)((p)[0])) | ((uint64_t)((p)[1]) << 8) | ((uint64_t)((p)[2]) << 16) | \
-         ((uint64_t)((p)[3]) << 24) | ((uint64_t)((p)[4]) << 32) |                       \
-         ((uint64_t)((p)[5]) << 40) | ((uint64_t)((p)[6]) << 48) |                       \
-         ((uint64_t)((p)[7]) << 56))                                                     \
+#define U8TO64_LE(p)                                               \
+    {                                                              \
+        (((uint64_t)((p)[0])) | ((uint64_t)((p)[1]) << 8) |        \
+         ((uint64_t)((p)[2]) << 16) | ((uint64_t)((p)[3]) << 24) | \
+         ((uint64_t)((p)[4]) << 32) | ((uint64_t)((p)[5]) << 40) | \
+         ((uint64_t)((p)[6]) << 48) | ((uint64_t)((p)[7]) << 56))  \
     }
 #define U64TO8_LE(p, v)                            \
     {                                              \
@@ -717,7 +731,9 @@ static uint32_t XXH_read32(const void* memptr) {
     return val;
 }
 
-static uint64_t XXH_rotl64(uint64_t x, int r) { return (x << r) | (x >> (64 - r)); }
+static uint64_t XXH_rotl64(uint64_t x, int r) {
+    return (x << r) | (x >> (64 - r));
+}
 
 static uint64_t xxh3(const void* data, size_t len, uint64_t seed) {
     const uint8_t*       p   = (const uint8_t*)data;
@@ -815,17 +831,26 @@ static uint64_t xxh3(const void* data, size_t len, uint64_t seed) {
 }
 
 // hashmap_sip returns a hash value for `data` using SipHash-2-4.
-uint64_t hashmap_sip(const void* data, size_t len, uint64_t seed0, uint64_t seed1) {
+uint64_t hashmap_sip(const void* data,
+                     size_t      len,
+                     uint64_t    seed0,
+                     uint64_t    seed1) {
     return SIP64((uint8_t*)data, len, seed0, seed1);
 }
 
 // hashmap_murmur returns a hash value for `data` using Murmur3_86_128.
-uint64_t hashmap_murmur(const void* data, size_t len, uint64_t seed0, uint64_t seed1) {
+uint64_t hashmap_murmur(const void* data,
+                        size_t      len,
+                        uint64_t    seed0,
+                        uint64_t    seed1) {
     (void)seed1;
     return MM86128(data, len, seed0);
 }
 
-uint64_t hashmap_xxhash3(const void* data, size_t len, uint64_t seed0, uint64_t seed1) {
+uint64_t hashmap_xxhash3(const void* data,
+                         size_t      len,
+                         uint64_t    seed0,
+                         uint64_t    seed1) {
     (void)seed1;
     return xxh3(data, len, seed0);
 }
@@ -851,7 +876,8 @@ static size_t deepcount(struct hashmap* map) {
 #    ifdef __clang__
 #        pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #        pragma GCC diagnostic ignored "-Wcompound-token-split-by-macro"
-#        pragma GCC diagnostic ignored "-Wgnu-statement-expression-from-macro-expansion"
+#        pragma GCC diagnostic ignored \
+            "-Wgnu-statement-expression-from-macro-expansion"
 #    endif
 #    ifdef __GNUC__
 #        pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -921,7 +947,8 @@ static uint64_t hash_int(const void* item, uint64_t seed0, uint64_t seed1) {
 static uint64_t hash_str(const void* item, uint64_t seed0, uint64_t seed1) {
     return hashmap_xxhash3(*(char**)item, strlen(*(char**)item), seed0, seed1);
     // return hashmap_sip(*(char**)item, strlen(*(char**)item), seed0, seed1);
-    // return hashmap_murmur(*(char**)item, strlen(*(char**)item), seed0, seed1);
+    // return hashmap_murmur(*(char**)item, strlen(*(char**)item), seed0,
+    // seed1);
 }
 
 static void free_str(void* item) { xfree(*(char**)item); }
@@ -945,9 +972,14 @@ static void all(void) {
 
     struct hashmap* map;
 
-    while (!(map = hashmap_new(
-                 sizeof(int), 0, seed, seed, hash_int, compare_ints_udata, NULL, NULL))) {
-    }
+    while (!(map = hashmap_new(sizeof(int),
+                               0,
+                               seed,
+                               seed,
+                               hash_int,
+                               compare_ints_udata,
+                               NULL,
+                               NULL))) {}
     shuffle(vals, N, sizeof(int));
     for (int i = 0; i < N; i++) {
         // // printf("== %d ==\n", vals[i]);
@@ -997,7 +1029,9 @@ static void all(void) {
     // Test hashmap_iter. This does the same as hashmap_scan above.
     size_t iter = 0;
     void*  iter_val;
-    while (hashmap_iter(map, &iter, &iter_val)) { assert(iter_ints(iter_val, &vals2)); }
+    while (hashmap_iter(map, &iter, &iter_val)) {
+        assert(iter_ints(iter_val, &vals2));
+    }
     for (int i = 0; i < N; i++) { assert(vals2[i] == 1); }
     xfree(vals2);
 
@@ -1046,8 +1080,14 @@ static void all(void) {
     xfree(vals);
 
 
-    while (!(map = hashmap_new(
-                 sizeof(char*), 0, seed, seed, hash_str, compare_strs, free_str, NULL)));
+    while (!(map = hashmap_new(sizeof(char*),
+                               0,
+                               seed,
+                               seed,
+                               hash_str,
+                               compare_strs,
+                               free_str,
+                               NULL)));
 
     for (int i = 0; i < N; i++) {
         char* str;
@@ -1121,8 +1161,8 @@ static void benchmarks(void) {
     struct hashmap* map;
     shuffle(vals, N, sizeof(int));
 
-    map =
-        hashmap_new(sizeof(int), 0, seed, seed, hash_int, compare_ints_udata, NULL, NULL);
+    map = hashmap_new(
+        sizeof(int), 0, seed, seed, hash_int, compare_ints_udata, NULL, NULL);
     bench("set", N, {
         const int* v = hashmap_set(map, &vals[i]);
         assert(!v);
@@ -1136,8 +1176,8 @@ static void benchmarks(void) {
         assert(v && *v == vals[i]);
     }) hashmap_free(map);
 
-    map =
-        hashmap_new(sizeof(int), N, seed, seed, hash_int, compare_ints_udata, NULL, NULL);
+    map = hashmap_new(
+        sizeof(int), N, seed, seed, hash_int, compare_ints_udata, NULL, NULL);
     bench("set (cap)", N, {
         const int* v = hashmap_set(map, &vals[i]);
         assert(!v);

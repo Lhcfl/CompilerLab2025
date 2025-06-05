@@ -1,9 +1,9 @@
 #include "ir.h"
 #include "llib.h"
 #include "predefines.h"
-#include <stddef.h>
-#include <stdio.h>
-#include <string.h>
+#include "stddef.h"
+#include "stdio.h"
+#include "string.h"
 
 #define IR_VAR_BUFFER_SIZE 50
 #define IR_LABEL_BUFFER_SIZE 50

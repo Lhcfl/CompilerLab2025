@@ -1,8 +1,8 @@
 #include "llib.h"
 #include "predefines.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
 
 LString MakeLString() {
     LString ret   = malloc(sizeof(struct LStringBody));

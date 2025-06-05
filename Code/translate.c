@@ -4,12 +4,12 @@
 #include "predefines.h"
 #include "syndef.h"
 #include "type_system.h"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "stdbool.h"
+#include "stddef.h"
+#include "stdint.h"
+#include "string.h"
+#include "stdio.h"
+#include "stdlib.h"
 
 #pragma region Definations
 

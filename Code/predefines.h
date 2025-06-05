@@ -1,8 +1,8 @@
 #ifndef LINCA_BYYL_PREDEFINES
 #define LINCA_BYYL_PREDEFINES
 
-#include <stdarg.h>
-#include <stdio.h>
+#include "stdarg.h"
+#include "stdio.h"
 #include "syndef.h"
 
 // #define CMM_DEBUG_LAB1
