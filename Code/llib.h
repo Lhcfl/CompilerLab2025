@@ -18,6 +18,7 @@
     }                                                                         \
     static inline void FreeLArrayOf##Type(LArrayOf##Type* arr) {              \
         free(arr->data);                                                      \
+        free(arr);                                                            \
     }                                                                         \
     static inline void PushLArrayOf##Type(LArrayOf##Type* arr, Type val) {    \
         if (arr->size >= arr->capacity) {                                     \
